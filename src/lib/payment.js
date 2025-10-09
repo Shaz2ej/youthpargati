@@ -13,7 +13,6 @@ import { supabase } from '@/lib/supabase.js'
 
 // Your actual Pay0.Shop API key
 const PAY0_SHOP_API_KEY = 'e694ab0346cf984568f7e52caebbd07e'
-const PAY0_SHOP_API_URL = 'https://pay0.shop/api/create-order'
 const REDIRECT_URL = 'http://localhost:5176/payment-success'
 
 /**
@@ -27,8 +26,10 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Generate order ID
     const orderId = `ORDER${Date.now()}`
     
-    // Try fetch-based approach first to get JSON response
-    const response = await fetch(PAY0_SHOP_API_URL, {
+    // Try fetch-based approach first to get JSON response through Netlify Function
+    console.log('Creating order with Netlify Function proxy');
+    
+    const response = await fetch('/.netlify/functions/create-order', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +37,6 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       body: JSON.stringify({
         customer_mobile: orderData.customer_mobile || '',
         customer_name: orderData.customer_name || '',
-        user_token: PAY0_SHOP_API_KEY,
         amount: orderData.amount,
         order_id: orderId,
         redirect_url: REDIRECT_URL,
@@ -46,9 +46,12 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     });
     
     const result = await response.json();
+    console.log('Netlify Function response:', result);
     
     // Check if we have a payment URL to redirect to
     if (result.status && result.result && result.result.payment_url) {
+      console.log('Redirecting to payment URL:', result.result.payment_url);
+      
       // Save order information to purchases table before redirecting
       const { data: studentData, error: studentError } = await supabase
         .from('students')
@@ -84,10 +87,12 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       return { status: true };
     } else {
       // If no payment URL, fall back to form submission
+      console.log('No payment URL in response, falling back to form submission');
+      
       // Create a hidden form
       const form = document.createElement('form')
       form.method = 'POST'
-      form.action = PAY0_SHOP_API_URL
+      form.action = 'https://pay0.shop/api/create-order'
       form.style.display = 'none'
       
       // Add form fields
