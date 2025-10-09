@@ -29,7 +29,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Try fetch-based approach first to get JSON response through Netlify Function
     console.log('Creating order with Netlify Function proxy');
     
-    const response = await fetch('/.netlify/functions/create-order', {
+    const response = await fetch('/.netlify/functions/api/createOrder', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,11 +92,8 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
         console.error('Database error during purchase record creation:', dbError);
       }
       
-      // Ensure the redirect happens immediately
-      setTimeout(() => {
-        window.location.href = result.result.payment_url;
-      }, 0);
-      
+      // Immediately redirect the user to the payment page
+      window.location.href = result.result.payment_url;
       return { status: true };
     } else {
       console.warn('Payment URL not found in response, falling back to form submission', result);
