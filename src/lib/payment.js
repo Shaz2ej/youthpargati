@@ -50,7 +50,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     
     // Check if we have a payment URL to redirect to
     // Based on the response structure: {"status":true,"message":"Order Created Successfully","result":{"orderId":"ORDER1760011833257","payment_url":"https://pay0.shop/instant/..."}}
-    if (result && result.status === true && result.result && result.result.payment_url) {
+    if (result?.status && result?.result?.payment_url) {
       console.log("Redirecting to:", result.result.payment_url);
       
       // Save order information to purchases table before redirecting
@@ -94,86 +94,15 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       }
       
       // Immediately redirect the user to the payment page
-      window.location.href = result.result.payment_url;
-      return { status: true };
+      window.location.replace(result.result.payment_url);
+      // Note: We don't return anything here because the redirect will navigate away from the page
     } else {
-      console.warn('Payment URL not found in response, falling back to form submission', result);
-      
-      // If no payment URL, fall back to form submission
-      console.log('No payment URL in response, falling back to form submission');
-      
-      // Create a hidden form
-      const form = document.createElement('form')
-      form.method = 'POST'
-      form.action = 'https://pay0.shop/api/create-order'
-      form.style.display = 'none'
-      
-      // Add form fields
-      const fields = {
-        customer_mobile: orderData.customer_mobile || '',
-        customer_name: orderData.customer_name || '',
-        user_token: PAY0_SHOP_API_KEY,
-        amount: orderData.amount,
-        order_id: orderId,
-        redirect_url: REDIRECT_URL,
-        remark1: 'BuyNow',
-        remark2: 'CoursePackage'
-      }
-      
-      // Add each field to the form
-      for (const [key, value] of Object.entries(fields)) {
-        const input = document.createElement('input')
-        input.type = 'hidden'
-        input.name = key
-        input.value = value
-        form.appendChild(input)
-      }
-      
-      // Add form to document and submit
-      document.body.appendChild(form)
-      form.submit()
-      
-      // Save order information to purchases table
-      try {
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('id')
-          .eq('firebase_uid', orderData.user_id)
-          .single()
-        
-        if (!studentError && studentData) {
-          // Insert purchase record (referral code will be processed by database trigger)
-          const purchaseData = {
-            student_id: studentData.id,
-            package_id: orderData.package_id,
-            package_name: orderData.package_name,
-            amount: orderData.amount,
-            commission_earned: 0, // Will be calculated by database trigger
-            status: 'pending',
-            payment_method: 'Pay0.Shop',
-            transaction_id: orderId
-          }
-          
-          // If a referral code is provided, store it with the purchase
-          if (referralCode) {
-            purchaseData.referral_code = referralCode;
-          }
-          
-          const { error: purchaseError } = await supabase
-            .from('purchases')
-            .insert(purchaseData)
-          
-          if (purchaseError) {
-            console.error('Error saving purchase record:', purchaseError);
-          } else {
-            console.log('Purchase record saved successfully');
-          }
-        }
-      } catch (dbError) {
-        console.error('Database error during purchase record creation:', dbError);
-      }
-      
-      return { status: true }
+      console.warn('Payment URL not found in response', result);
+      // If no payment URL, return an error
+      return {
+        status: false,
+        message: 'Failed to get payment URL. Please try again.'
+      };
     }
   } catch (error) {
     console.error('Payment error:', error);
