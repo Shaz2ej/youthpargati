@@ -49,7 +49,6 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     console.log('Netlify Function response:', result);
     
     // Check if we have a payment URL to redirect to
-    // Enhanced check to ensure all required properties exist
     if (result && result.status === true && result.result && result.result.payment_url) {
       console.log("Redirecting to:", result.result.payment_url);
       
@@ -91,11 +90,13 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
         }
       } catch (dbError) {
         console.error('Database error during purchase record creation:', dbError);
-        // Continue with redirect even if database operation fails
       }
       
-      // Redirect to payment URL - this runs inside the same async function after receiving the response
-      window.location.href = result.result.payment_url;
+      // Ensure the redirect happens immediately
+      setTimeout(() => {
+        window.location.href = result.result.payment_url;
+      }, 0);
+      
       return { status: true };
     } else {
       console.warn('Payment URL not found in response, falling back to form submission', result);
@@ -172,7 +173,6 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
         }
       } catch (dbError) {
         console.error('Database error during purchase record creation:', dbError);
-        // Continue with form submission even if database operation fails
       }
       
       return { status: true }
