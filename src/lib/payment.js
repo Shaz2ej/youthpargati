@@ -29,7 +29,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Try fetch-based approach first to get JSON response through Netlify Function
     console.log('Creating order with Netlify Function proxy');
     
-    const response = await fetch('/.netlify/functions/api/createOrder', {
+    const response = await fetch('/.netlify/functions/create-order', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
