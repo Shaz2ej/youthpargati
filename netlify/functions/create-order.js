@@ -71,15 +71,26 @@ exports.handler = async (event, context) => {
     const result = await response.json();
     console.log('Pay0.Shop API response:', result);
 
-    // Return the response to the frontend with proper CORS headers
-    return {
-      statusCode: response.status,
-      headers: {
-        'Access-Control-Allow-Origin': '*', // This fixes the CORS issue
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(result),
-    };
+    // Check if we have a payment URL to redirect to
+    if (result && result.status === true && result.result && result.result.payment_url) {
+      // Return a 302 redirect with the Location header set to the payment_url
+      return {
+        statusCode: 302,
+        headers: {
+          Location: result.result.payment_url,
+        },
+      };
+    } else {
+      // Return the response to the frontend with proper CORS headers
+      return {
+        statusCode: response.status,
+        headers: {
+          'Access-Control-Allow-Origin': '*', // This fixes the CORS issue
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(result),
+      };
+    }
   } catch (error) {
     console.error('Error processing payment:', error);
     return {

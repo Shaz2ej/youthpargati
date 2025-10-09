@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase.js'
 
 // Your actual Pay0.Shop API key
 const PAY0_SHOP_API_KEY = 'e694ab0346cf984568f7e52caebbd07e'
-const REDIRECT_URL = 'http://localhost:5176/payment-success'
+const REDIRECT_URL = "https://youthpargati.netlify.app/payment-success";
 
 /**
  * Create a hidden form and submit it to Pay0.Shop
