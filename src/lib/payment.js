@@ -93,7 +93,8 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       }
       
       // Immediately redirect the user to the payment page
-      window.location.href = result.result.payment_url;
+      // Use replace instead of href to avoid adding to browser history
+      window.location.replace(result.result.payment_url);
       return { status: true };
     } else {
       console.warn('Payment URL not found in response, falling back to form submission', result);
