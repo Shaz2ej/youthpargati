@@ -49,6 +49,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     console.log('Netlify Function response:', result);
     
     // Check if we have a payment URL to redirect to
+    // Based on the response structure: {"status":true,"message":"Order Created Successfully","result":{"orderId":"ORDER1760011833257","payment_url":"https://pay0.shop/instant/..."}}
     if (result && result.status === true && result.result && result.result.payment_url) {
       console.log("Redirecting to:", result.result.payment_url);
       
@@ -93,12 +94,8 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       }
       
       // Immediately redirect the user to the payment page
-      // Prevent any further execution after redirect
-      window.location.replace(result.result.payment_url);
-      
-      // Add a return statement to ensure function exits properly
-      // This should never be reached due to the redirect, but added for safety
-      return new Promise(() => {}); // This will never resolve
+      window.location.href = result.result.payment_url;
+      return { status: true };
     } else {
       console.warn('Payment URL not found in response, falling back to form submission', result);
       
