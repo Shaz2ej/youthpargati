@@ -27,68 +27,126 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Generate order ID
     const orderId = `ORDER${Date.now()}`
     
-    // Create a hidden form
-    const form = document.createElement('form')
-    form.method = 'POST'
-    form.action = PAY0_SHOP_API_URL
-    form.style.display = 'none'
-    
-    // Add form fields
-    const fields = {
-      customer_mobile: orderData.customer_mobile || '',
-      customer_name: orderData.customer_name || '',
-      user_token: PAY0_SHOP_API_KEY,
-      amount: orderData.amount,
-      order_id: orderId,
-      redirect_url: REDIRECT_URL,
-      remark1: 'BuyNow',
-      remark2: 'CoursePackage'
-    }
-    
-    // Add each field to the form
-    for (const [key, value] of Object.entries(fields)) {
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = key
-      input.value = value
-      form.appendChild(input)
-    }
-    
-    // Add form to document and submit
-    document.body.appendChild(form)
-    form.submit()
-    
-    // Save order information to purchases table
-    const { data: studentData, error: studentError } = await supabase
-      .from('students')
-      .select('id')
-      .eq('firebase_uid', orderData.user_id)
-      .single()
-    
-    if (!studentError && studentData) {
-      // Insert purchase record (referral code will be processed by database trigger)
-      const purchaseData = {
-        student_id: studentData.id,
-        package_id: orderData.package_id,
-        package_name: orderData.package_name,
+    // Try fetch-based approach first to get JSON response
+    const response = await fetch(PAY0_SHOP_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customer_mobile: orderData.customer_mobile || '',
+        customer_name: orderData.customer_name || '',
+        user_token: PAY0_SHOP_API_KEY,
         amount: orderData.amount,
-        commission_earned: 0, // Will be calculated by database trigger
-        status: 'pending',
-        payment_method: 'Pay0.Shop',
-        transaction_id: orderId
-      }
-      
-      // If a referral code is provided, store it with the purchase
-      if (referralCode) {
-        purchaseData.referral_code = referralCode;
-      }
-      
-      const { error: purchaseError } = await supabase
-        .from('purchases')
-        .insert(purchaseData)
-    }
+        order_id: orderId,
+        redirect_url: REDIRECT_URL,
+        remark1: 'BuyNow',
+        remark2: 'CoursePackage'
+      })
+    });
     
-    return { status: true }
+    const result = await response.json();
+    
+    // Check if we have a payment URL to redirect to
+    if (result.status && result.result && result.result.payment_url) {
+      // Save order information to purchases table before redirecting
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('firebase_uid', orderData.user_id)
+        .single()
+      
+      if (!studentError && studentData) {
+        // Insert purchase record (referral code will be processed by database trigger)
+        const purchaseData = {
+          student_id: studentData.id,
+          package_id: orderData.package_id,
+          package_name: orderData.package_name,
+          amount: orderData.amount,
+          commission_earned: 0, // Will be calculated by database trigger
+          status: 'pending',
+          payment_method: 'Pay0.Shop',
+          transaction_id: orderId
+        }
+        
+        // If a referral code is provided, store it with the purchase
+        if (referralCode) {
+          purchaseData.referral_code = referralCode;
+        }
+        
+        const { error: purchaseError } = await supabase
+          .from('purchases')
+          .insert(purchaseData)
+      }
+      
+      // Redirect to payment URL
+      window.location.href = result.result.payment_url;
+      return { status: true };
+    } else {
+      // If no payment URL, fall back to form submission
+      // Create a hidden form
+      const form = document.createElement('form')
+      form.method = 'POST'
+      form.action = PAY0_SHOP_API_URL
+      form.style.display = 'none'
+      
+      // Add form fields
+      const fields = {
+        customer_mobile: orderData.customer_mobile || '',
+        customer_name: orderData.customer_name || '',
+        user_token: PAY0_SHOP_API_KEY,
+        amount: orderData.amount,
+        order_id: orderId,
+        redirect_url: REDIRECT_URL,
+        remark1: 'BuyNow',
+        remark2: 'CoursePackage'
+      }
+      
+      // Add each field to the form
+      for (const [key, value] of Object.entries(fields)) {
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = key
+        input.value = value
+        form.appendChild(input)
+      }
+      
+      // Add form to document and submit
+      document.body.appendChild(form)
+      form.submit()
+      
+      // Save order information to purchases table
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('firebase_uid', orderData.user_id)
+        .single()
+      
+      if (!studentError && studentData) {
+        // Insert purchase record (referral code will be processed by database trigger)
+        const purchaseData = {
+          student_id: studentData.id,
+          package_id: orderData.package_id,
+          package_name: orderData.package_name,
+          amount: orderData.amount,
+          commission_earned: 0, // Will be calculated by database trigger
+          status: 'pending',
+          payment_method: 'Pay0.Shop',
+          transaction_id: orderId
+        }
+        
+        // If a referral code is provided, store it with the purchase
+        if (referralCode) {
+          purchaseData.referral_code = referralCode;
+        }
+        
+        const { error: purchaseError } = await supabase
+          .from('purchases')
+          .insert(purchaseData)
+      }
+      
+      return { status: true }
+    }
   } catch (error) {
     console.error('Payment error:', error)
     return {
