@@ -49,43 +49,57 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     console.log('Netlify Function response:', result);
     
     // Check if we have a payment URL to redirect to
-    if (result.status && result.result && result.result.payment_url) {
+    // Enhanced check to ensure all required properties exist
+    if (result && result.status === true && result.result && result.result.payment_url) {
       console.log('Redirecting to payment URL:', result.result.payment_url);
       
       // Save order information to purchases table before redirecting
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('firebase_uid', orderData.user_id)
-        .single()
-      
-      if (!studentError && studentData) {
-        // Insert purchase record (referral code will be processed by database trigger)
-        const purchaseData = {
-          student_id: studentData.id,
-          package_id: orderData.package_id,
-          package_name: orderData.package_name,
-          amount: orderData.amount,
-          commission_earned: 0, // Will be calculated by database trigger
-          status: 'pending',
-          payment_method: 'Pay0.Shop',
-          transaction_id: orderId
-        }
+      try {
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('firebase_uid', orderData.user_id)
+          .single()
         
-        // If a referral code is provided, store it with the purchase
-        if (referralCode) {
-          purchaseData.referral_code = referralCode;
+        if (!studentError && studentData) {
+          // Insert purchase record (referral code will be processed by database trigger)
+          const purchaseData = {
+            student_id: studentData.id,
+            package_id: orderData.package_id,
+            package_name: orderData.package_name,
+            amount: orderData.amount,
+            commission_earned: 0, // Will be calculated by database trigger
+            status: 'pending',
+            payment_method: 'Pay0.Shop',
+            transaction_id: orderId
+          }
+          
+          // If a referral code is provided, store it with the purchase
+          if (referralCode) {
+            purchaseData.referral_code = referralCode;
+          }
+          
+          const { error: purchaseError } = await supabase
+            .from('purchases')
+            .insert(purchaseData)
+          
+          if (purchaseError) {
+            console.error('Error saving purchase record:', purchaseError);
+          } else {
+            console.log('Purchase record saved successfully');
+          }
         }
-        
-        const { error: purchaseError } = await supabase
-          .from('purchases')
-          .insert(purchaseData)
+      } catch (dbError) {
+        console.error('Database error during purchase record creation:', dbError);
+        // Continue with redirect even if database operation fails
       }
       
       // Redirect to payment URL
       window.location.href = result.result.payment_url;
       return { status: true };
     } else {
+      console.warn('Payment URL not found in response, falling back to form submission', result);
+      
       // If no payment URL, fall back to form submission
       console.log('No payment URL in response, falling back to form submission');
       
@@ -121,39 +135,50 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       form.submit()
       
       // Save order information to purchases table
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('firebase_uid', orderData.user_id)
-        .single()
-      
-      if (!studentError && studentData) {
-        // Insert purchase record (referral code will be processed by database trigger)
-        const purchaseData = {
-          student_id: studentData.id,
-          package_id: orderData.package_id,
-          package_name: orderData.package_name,
-          amount: orderData.amount,
-          commission_earned: 0, // Will be calculated by database trigger
-          status: 'pending',
-          payment_method: 'Pay0.Shop',
-          transaction_id: orderId
-        }
+      try {
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('id')
+          .eq('firebase_uid', orderData.user_id)
+          .single()
         
-        // If a referral code is provided, store it with the purchase
-        if (referralCode) {
-          purchaseData.referral_code = referralCode;
+        if (!studentError && studentData) {
+          // Insert purchase record (referral code will be processed by database trigger)
+          const purchaseData = {
+            student_id: studentData.id,
+            package_id: orderData.package_id,
+            package_name: orderData.package_name,
+            amount: orderData.amount,
+            commission_earned: 0, // Will be calculated by database trigger
+            status: 'pending',
+            payment_method: 'Pay0.Shop',
+            transaction_id: orderId
+          }
+          
+          // If a referral code is provided, store it with the purchase
+          if (referralCode) {
+            purchaseData.referral_code = referralCode;
+          }
+          
+          const { error: purchaseError } = await supabase
+            .from('purchases')
+            .insert(purchaseData)
+          
+          if (purchaseError) {
+            console.error('Error saving purchase record:', purchaseError);
+          } else {
+            console.log('Purchase record saved successfully');
+          }
         }
-        
-        const { error: purchaseError } = await supabase
-          .from('purchases')
-          .insert(purchaseData)
+      } catch (dbError) {
+        console.error('Database error during purchase record creation:', dbError);
+        // Continue with form submission even if database operation fails
       }
       
       return { status: true }
     }
   } catch (error) {
-    console.error('Payment error:', error)
+    console.error('Payment error:', error);
     return {
       status: false,
       message: 'Failed to process payment. Please try again.'
