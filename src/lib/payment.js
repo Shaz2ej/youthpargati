@@ -51,7 +51,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Check if we have a payment URL to redirect to
     // Enhanced check to ensure all required properties exist
     if (result && result.status === true && result.result && result.result.payment_url) {
-      console.log('Redirecting to payment URL:', result.result.payment_url);
+      console.log("Redirecting to:", result.result.payment_url);
       
       // Save order information to purchases table before redirecting
       try {
@@ -94,7 +94,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
         // Continue with redirect even if database operation fails
       }
       
-      // Redirect to payment URL
+      // Redirect to payment URL - this runs inside the same async function after receiving the response
       window.location.href = result.result.payment_url;
       return { status: true };
     } else {
