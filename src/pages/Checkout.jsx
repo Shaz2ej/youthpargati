@@ -17,9 +17,13 @@ function Checkout() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    console.log('Checkout page loaded');
     // Get package data from session storage
     const storedPackage = sessionStorage.getItem('checkoutPackage')
     const storedReferralCode = sessionStorage.getItem('referralCode')
+    
+    console.log('Stored package:', storedPackage);
+    console.log('Stored referral code:', storedReferralCode);
     
     if (storedPackage) {
       setPackageData(JSON.parse(storedPackage))
@@ -35,6 +39,10 @@ function Checkout() {
   }, [])
 
   const handleProcessPayment = async () => {
+    console.log('Processing payment for user:', user);
+    console.log('Package data:', packageData);
+    console.log('Referral code:', referralCode);
+    
     if (!user) {
       setError('Please login to purchase courses')
       return
@@ -62,12 +70,21 @@ function Checkout() {
         return
       }
       
+      console.log('User data retrieved:', userData);
+      
       // Process payment with referral code if provided
-      await handlePackagePayment(packageData, {
+      const result = await handlePackagePayment(packageData, {
         uid: user.uid,
         name: userData.name,
         phone: userData.phone
       }, referralCode)
+      
+      console.log('Payment result:', result);
+      
+      // If there's an error in the result, show it to the user
+      if (result && !result.status) {
+        setError(result.message);
+      }
     } catch (error) {
       console.error('Payment error:', error)
       setError('Failed to process payment. Please try again.')

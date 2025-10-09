@@ -29,11 +29,13 @@ exports.handler = async (event, context) => {
 
   try {
     // Parse the request body
+    console.log('Raw event body:', event.body);
     const requestBody = JSON.parse(event.body);
     console.log('Received request:', requestBody);
 
     // Get the API key from environment variables
     const apiKey = process.env.PAY0_SHOP_API_KEY;
+    console.log('API Key present:', !!apiKey);
     if (!apiKey) {
       console.error('PAY0_SHOP_API_KEY environment variable not set');
       return {
@@ -41,7 +43,10 @@ exports.handler = async (event, context) => {
         headers: {
           'Access-Control-Allow-Origin': '*',
         },
-        body: JSON.stringify({ error: 'API key not configured' }),
+        body: JSON.stringify({ 
+          error: 'API key not configured',
+          message: 'PAY0_SHOP_API_KEY environment variable is not set in Netlify'
+        }),
       };
     }
 
@@ -59,6 +64,7 @@ exports.handler = async (event, context) => {
     console.log('Sending request to Pay0.Shop API with data:', Object.fromEntries(formData));
 
     // Call Pay0.Shop API
+    console.log('Making request to Pay0.Shop API');
     const response = await fetch('https://pay0.shop/api/create-order', {
       method: 'POST',
       headers: {
@@ -66,10 +72,31 @@ exports.handler = async (event, context) => {
       },
       body: formData.toString(),
     });
+    
+    console.log('Pay0.Shop API response status:', response.status);
+    console.log('Pay0.Shop API response headers:', Object.fromEntries(response.headers));
 
     // Get response from Pay0.Shop
     const result = await response.json();
     console.log('Pay0.Shop API response:', result);
+    console.log('Pay0.Shop API response status:', response.status);
+    
+    // Check if the response contains an error
+    if (!response.ok || (result && !result.status)) {
+      console.error('Pay0.Shop API error response:', result);
+      return {
+        statusCode: response.status || 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          error: 'Pay0.Shop API error',
+          message: result?.message || result?.error || 'Unknown error from payment provider',
+          details: result
+        }),
+      };
+    }
 
     // Return the response to the frontend with proper CORS headers
     // Let the frontend handle the redirect
@@ -83,6 +110,7 @@ exports.handler = async (event, context) => {
     };
   } catch (error) {
     console.error('Error processing payment:', error);
+    console.error('Error stack:', error.stack);
     return {
       statusCode: 500,
       headers: {

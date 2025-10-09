@@ -11,9 +11,9 @@ import { supabase } from '@/lib/supabase.js'
  * const REDIRECT_URL = import.meta.env.VITE_PAYMENT_SUCCESS_URL
  */
 
-// Your actual Pay0.Shop API key
-const PAY0_SHOP_API_KEY = 'e694ab0346cf984568f7e52caebbd07e'
-const REDIRECT_URL = "https://youthpargati.netlify.app/payment-success";
+// Use environment variables for API key and redirect URL
+const PAY0_SHOP_API_KEY = import.meta.env.VITE_PAY0_SHOP_API_KEY || 'e694ab0346cf984568f7e52caebbd07e';
+const REDIRECT_URL = import.meta.env.VITE_PAYMENT_SUCCESS_URL || "https://youthpargati.netlify.app/payment-success";
 
 /**
  * Create a hidden form and submit it to Pay0.Shop
@@ -29,24 +29,77 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
     // Try fetch-based approach first to get JSON response through Netlify Function
     console.log('Creating order with Netlify Function proxy');
     
-    const response = await fetch('/.netlify/functions/create-order', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        customer_mobile: orderData.customer_mobile || '',
-        customer_name: orderData.customer_name || '',
-        amount: orderData.amount,
-        order_id: orderId,
-        redirect_url: REDIRECT_URL,
-        remark1: 'BuyNow',
-        remark2: 'CoursePackage'
-      })
-    });
+    // For local development, we'll make a direct call to Pay0.shop
+    // In production, we should use the Netlify function to avoid CORS issues
+    const isLocal = window.location.hostname === 'localhost';
+    let result;
+    let response; // Declare response variable
     
-    const result = await response.json();
-    console.log('Netlify Function response:', result);
+    if (isLocal) {
+      // Direct API call for local development
+      console.log('Making direct API call to Pay0.shop for local development');
+      
+      const formData = new URLSearchParams();
+      formData.append('customer_mobile', orderData.customer_mobile || '');
+      formData.append('customer_name', orderData.customer_name || '');
+      formData.append('user_token', PAY0_SHOP_API_KEY);
+      formData.append('amount', orderData.amount);
+      formData.append('order_id', orderId);
+      formData.append('redirect_url', REDIRECT_URL);
+      formData.append('remark1', 'BuyNow');
+      formData.append('remark2', 'CoursePackage');
+      
+      response = await fetch('https://pay0.shop/api/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+      
+      // Check if response is OK before trying to parse JSON
+      if (!response.ok) {
+        console.error('Pay0.shop API error:', response.status, response.statusText);
+        throw new Error(`Pay0.shop API error: ${response.status} ${response.statusText}`);
+      }
+      
+      result = await response.json();
+      console.log('Pay0.shop API response:', result);
+    } else {
+      // Use Netlify function in production
+      response = await fetch('/.netlify/functions/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customer_mobile: orderData.customer_mobile || '',
+          customer_name: orderData.customer_name || '',
+          amount: orderData.amount,
+          order_id: orderId,
+          redirect_url: REDIRECT_URL,
+          remark1: 'BuyNow',
+          remark2: 'CoursePackage'
+        })
+      });
+      
+      // Check if response is OK before trying to parse JSON
+      console.log('Netlify function response status:', response.status);
+      console.log('Netlify function response headers:', response.headers);
+      
+      if (!response.ok) {
+        console.error('Netlify function error:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Netlify function error details:', errorText);
+        throw new Error(`Netlify function error: ${response.status} ${response.statusText}. Details: ${errorText}`);
+      }
+      
+      result = await response.json();
+      console.log('Netlify Function response:', result);
+    }
+    
+    console.log('Response status:', response.status);
+    console.log('Full response from Netlify function:', result);
     
     // Check if we have a payment URL to redirect to
     // Based on the response structure: {"status":true,"message":"Order Created Successfully","result":{"orderId":"ORDER1760011833257","payment_url":"https://pay0.shop/instant/..."}}
@@ -98,17 +151,40 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       // Note: We don't return anything here because the redirect will navigate away from the page
     } else {
       console.warn('Payment URL not found in response', result);
+      console.warn('Result status:', result?.status);
+      console.warn('Result result:', result?.result);
+      console.warn('Result payment_url:', result?.result?.payment_url);
+      
+      // Check if there's an error message in the response
+      let errorMessage = 'Failed to get payment URL. Please try again.';
+      if (result?.message) {
+        errorMessage = result.message;
+      } else if (result?.error) {
+        errorMessage = result.error;
+      }
+      
       // If no payment URL, return an error
       return {
         status: false,
-        message: 'Failed to get payment URL. Please try again.'
+        message: errorMessage
       };
     }
   } catch (error) {
     console.error('Payment error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    // Provide more specific error messages based on the error type
+    let errorMessage = 'Failed to process payment. Please try again.';
+    if (error.message.includes('404')) {
+      errorMessage = 'Payment service is currently unavailable. Please try again later.';
+    } else if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Network error. Please check your connection and try again.';
+    }
+    
     return {
       status: false,
-      message: 'Failed to process payment. Please try again.'
+      message: errorMessage
     }
   }
 }
