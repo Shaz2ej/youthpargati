@@ -302,38 +302,39 @@ CREATE OR REPLACE FUNCTION process_referral_commission()
 RETURNS TRIGGER AS $$
 DECLARE
     referrer_id UUID;
-    commission_rate DECIMAL(5,2);
-    commission_earned DECIMAL(10,2);
+    referrer_package_id UUID;
+    fixed_commission DECIMAL(10,2);
 BEGIN
     -- Check if a referral code was provided with the purchase
     IF NEW.referral_code IS NOT NULL THEN
-        -- Find the referrer
-        SELECT urc.user_id INTO referrer_id
+        -- Find the referrer using the referral code (package ID no longer needs to match)
+        SELECT urc.user_id, urc.package_id INTO referrer_id, referrer_package_id
         FROM user_referral_codes urc
         WHERE urc.referral_code = NEW.referral_code
-        AND urc.package_id = NEW.package_id
         LIMIT 1;
         
-        -- If referrer found, calculate commission
-        IF referrer_id IS NOT NULL THEN
-            -- Get commission rate for the package
-            SELECT commission_rate INTO commission_rate
+        -- If referrer found, use fixed commission based on referrer's package
+        IF referrer_id IS NOT NULL AND referrer_package_id IS NOT NULL THEN
+            -- Get fixed commission amount for the referrer's package
+            SELECT commission_amount INTO fixed_commission
             FROM packages
-            WHERE id = NEW.package_id;
+            WHERE id = referrer_package_id;
             
-            -- Calculate commission
-            commission_earned := (NEW.amount * commission_rate / 100);
+            -- Use fixed commission or default to 0
+            IF fixed_commission IS NULL THEN
+                fixed_commission := 0;
+            END IF;
             
-            -- Update the purchase with the calculated commission
-            NEW.commission_earned := commission_earned;
+            -- Update the purchase with the fixed commission
+            NEW.commission_earned := fixed_commission;
             
             -- Create referral record
             INSERT INTO referrals (referrer_id, referred_id, referral_code, commission_earned)
-            VALUES (referrer_id, NEW.student_id, NEW.referral_code, commission_earned);
+            VALUES (referrer_id, NEW.student_id, NEW.referral_code, fixed_commission);
             
             -- Update referrer's affiliate record
             UPDATE affiliates 
-            SET total_commission = total_commission + commission_earned,
+            SET total_commission = total_commission + fixed_commission,
                 total_referrals = total_referrals + 1,
                 updated_at = NOW()
             WHERE student_id = referrer_id;
