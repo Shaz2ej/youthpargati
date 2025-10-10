@@ -126,6 +126,13 @@ CREATE POLICY "Students can view own purchases" ON purchases
         )
     );
 
+CREATE POLICY "Students can create purchases" ON purchases
+    FOR INSERT WITH CHECK (
+        student_id IN (
+            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+        )
+    );
+
 -- Withdrawals policies
 CREATE POLICY "Students can view own withdrawals" ON withdrawals
     FOR SELECT USING (

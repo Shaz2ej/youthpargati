@@ -33,6 +33,12 @@ function PaymentSuccess() {
           throw new Error('Missing package data or user authentication')
         }
         
+        // Refresh Supabase session to ensure it's synchronized with Firebase auth
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error('Error getting Supabase session:', sessionError)
+        }
+        
         const packageData = JSON.parse(storedPackage)
         console.log('Package data:', packageData);
         
@@ -70,7 +76,7 @@ function PaymentSuccess() {
         
         if (insertError) {
           console.error('Error inserting purchase record:', insertError)
-          throw new Error('Failed to record purchase')
+          throw new Error('Failed to record purchase: ' + insertError.message)
         }
         
         console.log('Purchase record inserted successfully:', purchaseResult)
