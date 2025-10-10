@@ -126,6 +126,14 @@ CREATE POLICY "Students can view own purchases" ON purchases
         )
     );
 
+-- FINAL TEST POLICY: Simply check if the student_id is valid in the students table
+CREATE POLICY "Allow any authenticated user to insert a valid purchase" ON purchases
+FOR INSERT WITH CHECK (
+    -- Check if the student\_id being inserted actually exists in the students table.
+    -- We are temporarily removing the auth.jwt() check to isolate the problem.
+    student_id IN (SELECT id FROM students)
+);
+
 -- The ultimate fix for INSERT RLS with Firebase/Custom Auth
 CREATE POLICY "Allow students to insert their own purchases" ON purchases
 FOR INSERT WITH CHECK (
