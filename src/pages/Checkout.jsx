@@ -33,9 +33,8 @@ function Checkout() {
       setReferralCode(storedReferralCode)
     }
     
-    // Clear session storage after retrieving data
-    sessionStorage.removeItem('checkoutPackage')
-    sessionStorage.removeItem('referralCode')
+    // NOTE: Don't clear session storage here - it should persist until payment is complete
+    // The session storage will be cleared in PaymentSuccess.jsx after successful processing
   }, [])
 
   const handleProcessPayment = async () => {

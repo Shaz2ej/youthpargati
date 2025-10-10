@@ -7,12 +7,17 @@ import { supabase } from '@/lib/supabase.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 
 function PaymentSuccess() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    // Wait for auth state to be determined
+    if (loading) {
+      return;
+    }
+    
     const processPaymentSuccess = async () => {
       try {
         console.log('Processing payment success for user:', user);
@@ -73,7 +78,7 @@ function PaymentSuccess() {
         
         console.log('Purchase record inserted successfully:', purchaseResult)
         
-        // Clear session storage
+        // Clear session storage after successful processing
         sessionStorage.removeItem('checkoutPackage')
         sessionStorage.removeItem('referralCode')
         
@@ -86,11 +91,15 @@ function PaymentSuccess() {
       }
     }
     
-    // Only run if user is authenticated
-    if (user) {
+    // Only run if user is authenticated and not still loading
+    if (!loading && user) {
       processPaymentSuccess()
+    } else if (!loading && !user) {
+      // User is not authenticated
+      setError('User authentication required. Please login to complete your purchase.')
+      setIsLoading(false)
     }
-  }, [user])
+  }, [user, loading])
 
   const handleViewCourse = () => {
     // Redirect to dashboard where purchased courses will be visible
@@ -101,7 +110,8 @@ function PaymentSuccess() {
     navigate('/')
   }
 
-  if (isLoading) {
+  // Show loading state while auth is being determined
+  if (loading || (isLoading && !error)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center px-4 py-12">
         <div className="text-center">
