@@ -121,7 +121,6 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
             package_id: orderData.package_id,
             amount: orderData.amount,
             commission: 0, // Will be calculated by database trigger
-            status: 'pending',
             transaction_id: orderId
           }
           
