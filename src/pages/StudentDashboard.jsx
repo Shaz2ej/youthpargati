@@ -402,6 +402,9 @@ function StudentDashboard() {
               {/* Package-specific referral codes */}
               <div>
                 <h3 className="text-xl font-bold text-gray-800 mb-4">Your Package Referral Links</h3>
+                <p className="text-sm text-gray-600 mb-4 italic">
+                  Note: You'll earn commission based on your current package level, regardless of which package the referred person buys.
+                </p>
                 {userReferralCodes.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {userReferralCodes.map((referral, index) => (
