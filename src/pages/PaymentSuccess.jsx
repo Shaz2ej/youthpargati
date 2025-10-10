@@ -57,7 +57,6 @@ function PaymentSuccess() {
           amount: packageData.price,
           commission: 0, // Will be calculated by database trigger
           status: 'completed',
-          payment_method: 'Pay0.Shop',
           // Include referral code if available - will be processed by database trigger
           ...(referralCode && { referral_code: referralCode })
         }
