@@ -126,12 +126,16 @@ CREATE POLICY "Students can view own purchases" ON purchases
         )
     );
 
-CREATE POLICY "Students can create purchases" ON purchases
-    FOR INSERT WITH CHECK (
-        student_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
-        )
-    );
+-- RLS policy which should work for INSERTs by the student themselves
+CREATE POLICY "Allow students to insert their own purchases" ON purchases
+FOR INSERT WITH CHECK (
+    -- Explicitly check if the student_id they are inserting belongs to a student
+    -- that is linked to their currently logged-in Firebase UID (auth.jwt() ->> 'sub').
+    EXISTS (
+        SELECT 1 FROM students
+        WHERE students.id = student_id AND students.firebase_uid = auth.jwt() ->> 'sub'
+    )
+);
 
 -- Withdrawals policies
 CREATE POLICY "Students can view own withdrawals" ON withdrawals
