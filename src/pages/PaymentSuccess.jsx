@@ -54,7 +54,6 @@ function PaymentSuccess() {
         const purchaseData = {
           student_id: studentData.id,
           package_id: packageData.id,
-          package_name: packageData.title,
           amount: packageData.price,
           commission: 0, // Will be calculated by database trigger
           status: 'completed',

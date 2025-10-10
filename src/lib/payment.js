@@ -119,7 +119,6 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
           const purchaseData = {
             student_id: studentData.id,
             package_id: orderData.package_id,
-            package_name: orderData.package_name,
             amount: orderData.amount,
             commission: 0, // Will be calculated by database trigger
             status: 'pending',
@@ -202,7 +201,6 @@ export const handlePackagePayment = async (packageData, userData, referralCode =
     customer_mobile: userData.phone || '',
     customer_name: userData.name || 'Customer',
     amount: packageData.price,
-    package_name: packageData.title,
     package_id: packageData.id,
     user_id: userData.uid
   }
