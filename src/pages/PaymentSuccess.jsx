@@ -68,6 +68,21 @@ function PaymentSuccess() {
         
         console.log('Purchase data to insert:', purchaseData);
         
+        // 1. Get the current Firebase ID Token
+        const token = await user.getIdToken();
+        
+        // 2. Explicitly sign in with the ID Token to update the Supabase client's session
+        const { error: tokenError } = await supabase.auth.signInWithIdToken({
+          provider: 'firebase', // Ensure this is the correct provider name
+          token: token,
+        });
+        
+        if (tokenError) {
+          console.error("Critical Error: Supabase token update failed:", tokenError);
+          throw new Error('Failed to authenticate with Supabase: ' + tokenError.message);
+        }
+        
+        // 3. NOW, proceed with the insert operation (which will now use the correct token)
         // Insert purchase record
         const { data: purchaseResult, error: insertError } = await supabase
           .from('purchases')
