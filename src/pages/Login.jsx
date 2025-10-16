@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Label } from '@/components/ui/label.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { signInWithGoogle } from '@/firebase.js'
@@ -9,7 +7,6 @@ import { signInWithGoogle } from '@/firebase.js'
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [info, setInfo] = useState('')
@@ -19,20 +16,6 @@ function Login() {
       setInfo('Registration successful! Please log in.')
     }
   }, [location.state])
-
-  const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    // Note: Email/password login would need to be implemented with Supabase auth
-    // For now, we're focusing on Google OAuth
-    setError('Email/password login is not implemented. Please use Google Sign-In.')
-    setLoading(false)
-  }
 
   const handleGoogleSignIn = async () => {
     setError('')
@@ -57,31 +40,10 @@ function Login() {
           </CardHeader>
           <CardContent>
             {info && <p className="mb-3 text-green-700 font-semibold text-center">{info}</p>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email" className="font-semibold">Email</Label>
-                <Input id="email" type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
-              </div>
-              <div>
-                <Label htmlFor="password" className="font-semibold">Password</Label>
-                <Input id="password" type="password" name="password" value={form.password} onChange={handleChange} placeholder="••••••••" required />
-              </div>
-              {error && (
-                <p className="text-red-600 text-sm font-semibold text-center">{error}</p>
-              )}
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold" disabled={loading}>
-                {loading ? 'Signing in...' : 'Login'}
-              </Button>
-            </form>
             
-            <div className="my-4 relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
+            {error && (
+              <p className="text-red-600 text-sm font-semibold text-center mb-4">{error}</p>
+            )}
             
             <Button 
               onClick={handleGoogleSignIn}

@@ -11,7 +11,7 @@ const getStudentIdBySupabaseUid = async (supabaseUid) => {
     const { data, error } = await supabaseClient
       .from('students')
       .select('id')
-      .eq('firebase_uid', supabaseUid)
+      .eq('id', supabaseUid)  // Changed from firebase_uid to id
       .single();
 
   if (error) {
@@ -47,7 +47,7 @@ export const getStudentData = async (userId) => {
     const { data, error } = await supabaseClient
       .from('students')
       .select('*')
-      .eq('firebase_uid', userId)
+      .eq('id', userId)  // Changed from firebase_uid to id
       .single()
     
     if (error) {
@@ -314,14 +314,17 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
     // Generate a unique referral code
     const studentReferralCode = generateReferralCode(name)
     
+    // Use upsert instead of insert to prevent duplicate key errors
     const { data, error } = await supabaseClient
       .from('students')
-      .insert({
-        firebase_uid: supabaseUid,
+      .upsert({
+        id: supabaseUid,  // Use Supabase user ID as the primary key
         name: name,
         email: email,
         phone: phone,
         referral_code: studentReferralCode
+      }, {
+        onConflict: 'id'  // Conflict on the id field
       })
       .select()
       .single()
@@ -331,11 +334,13 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
     // Create affiliate record
     const { error: affiliateError } = await supabaseClient
       .from('affiliates')
-      .insert({
+      .upsert({
         student_id: data.id,
         referral_code: studentReferralCode,
         total_leads: 0,
         total_commission: 0
+      }, {
+        onConflict: 'student_id'  // Conflict on the student_id field
       })
     
     if (affiliateError) {
@@ -355,10 +360,12 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
         // Create referral record
         await supabaseClient
           .from('referrals')
-          .insert({
+          .upsert({
             referrer_id: referrerData.user_id,
             referred_id: data.id,
             referral_code: referralCode
+          }, {
+            onConflict: 'referred_id'  // Conflict on the referred_id field
           })
         
         // Update referrer's lead count
@@ -484,11 +491,13 @@ export const generateUserReferralCodes = async (userId, packageId) => {
     // Create new referral code entry
     const { data, error } = await supabaseClient
       .from('user_referral_codes')
-      .insert({
+      .upsert({
         user_id: studentId,
         package_id: packageId,
         referral_code: studentData.referral_code,
         referral_link: referralLink
+      }, {
+        onConflict: 'user_id, package_id'  // Conflict on the combination of user_id and package_id
       })
       .select(`
         referral_code,
