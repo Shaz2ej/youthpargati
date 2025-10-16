@@ -23,6 +23,25 @@ const getStudentIdBySupabaseUid = async (supabaseUid) => {
   return { id: data.id, error: null };
 };
 
+// Function to get courses by package ID
+export const getCoursesByPackageId = async (packageId) => {
+  try {
+    const { data, error } = await supabaseClient
+      .from('courses')
+      .select('*')
+      .eq('package_id', packageId)
+    
+    if (error) {
+      console.error('Error fetching courses by package ID:', error)
+      return { data: null, error: error.message }
+    }
+    return { data, error: null }
+  } catch (error) {
+    console.error('getCoursesByPackageId error:', error)
+    return { data: null, error: error.message }
+  }
+};
+
 export const getStudentData = async (userId) => {
   try {
     const { data, error } = await supabaseClient
