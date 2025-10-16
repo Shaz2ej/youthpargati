@@ -4,8 +4,7 @@ import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { auth } from '@/firebase.js'
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import { supabase } from '@/firebase.js'
 import { createStudent } from '@/lib/api.js'
 
 function Register() {
@@ -32,30 +31,42 @@ function Register() {
     setError('')
     setLoading(true)
     try {
-      // Create Firebase user
-      const cred = await createUserWithEmailAndPassword(auth, form.email, form.password)
-      await updateProfile(cred.user, { displayName: form.name })
+      // Create Supabase user
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            name: form.name,
+            number: form.number
+          }
+        }
+      })
       
-      // Create student record in Supabase, passing referral code if present
-      const studentResult = await createStudent(
-        cred.user.uid, 
-        form.name, 
-        form.email, 
-        form.number, 
-        form.referralCode
-      )
-      if (studentResult.error) {
-        console.error('Error creating student record:', studentResult.error)
-        // Don't fail registration if Supabase fails, just log the error
+      if (signUpError) throw signUpError
+      
+      // If user is created successfully, create student record in Supabase
+      if (data.user) {
+        const studentResult = await createStudent(
+          data.user.id, 
+          form.name, 
+          form.email, 
+          form.number, 
+          form.referralCode
+        )
+        if (studentResult.error) {
+          console.error('Error creating student record:', studentResult.error)
+          // Don't fail registration if Supabase fails, just log the error
+        }
       }
       
       navigate('/login', { replace: true, state: { registered: true } })
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
+      if (err.message.includes('already registered')) {
         setError('This email is already registered. Please log in.')
-      } else if (err.code === 'auth/weak-password') {
+      } else if (err.message.includes('weak password')) {
         setError('Password should be at least 6 characters.')
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (err.message.includes('invalid email')) {
         setError('Please enter a valid email address.')
       } else {
         setError('Registration failed. Please try again.')
