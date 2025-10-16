@@ -12,6 +12,7 @@ import VideoPlayerDemo from '@/pages/VideoPlayerDemo.jsx'
 import VideoPlayerTestDemo from '@/pages/VideoPlayerTestDemo.jsx'
 import PaymentSuccess from '@/pages/PaymentSuccess.jsx'
 import Checkout from '@/pages/Checkout.jsx'
+import CompleteProfile from '@/pages/CompleteProfile.jsx'
 import { AuthProvider } from '@/context/AuthContext.jsx'
 import ProtectedRoute from '@/components/ProtectedRoute.jsx'
 
@@ -33,6 +34,11 @@ function App() {
           <Route path="/checkout" element={
             <ProtectedRoute>
               <Checkout />
+            </ProtectedRoute>
+          } />
+          <Route path="/complete-profile" element={
+            <ProtectedRoute>
+              <CompleteProfile />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={

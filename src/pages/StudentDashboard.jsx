@@ -34,6 +34,7 @@ import {
 } from '@/lib/api.js'
 import { testSupabaseConnection } from '@/lib/testSupabase.js'
 import { WithdrawalsCard } from '@/lib/WithdrawalsCard.jsx'
+import { supabase } from '@/firebase.js'
 
 function StudentDashboard() {
   const { user, signOut } = useAuth()
@@ -54,30 +55,60 @@ function StudentDashboard() {
   // Constants
   const COPIED_TIMEOUT = 2000;
 
+  // Check if user has completed profile
+  const checkUserProfileCompletion = useCallback(async () => {
+    if (!user?.id) return
+    
+    try {
+      // Get student data to check if phone number exists
+      const { data, error } = await supabase
+        .from('students')
+        .select('phone')
+        .eq('firebase_uid', user.id)
+        .single()
+      
+      if (error) {
+        console.error('Error checking user profile:', error)
+        return
+      }
+      
+      // If phone number is missing, redirect to complete profile
+      if (!data.phone || data.phone.trim() === '') {
+        navigate('/complete-profile')
+        return
+      }
+    } catch (err) {
+      console.error('Profile completion check error:', err)
+    }
+  }, [user, navigate])
+
   // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
-    if (!user?.uid) return
+    if (!user?.id) return
     
     setLoading(true)
     setError('')
     
     try {
+      // First check if user has completed profile
+      await checkUserProfileCompletion()
+      
       // Test Supabase connection first
       const connectionTest = await testSupabaseConnection()
       if (!connectionTest.success) {
         throw new Error(`Database connection failed: ${connectionTest.error}`)
       }
       // First, try to get student data
-      let studentResult = await getStudentData(user.uid)
+      let studentResult = await getStudentData(user.id)
       
       // If student doesn't exist, create one
       if (studentResult.error === 'No student record found') {
         console.log('Student record not found, creating new one...')
         const createResult = await createStudent(
-          user.uid, 
-          user.displayName || 'Student', 
+          user.id, 
+          user.user_metadata?.name || 'Student', 
           user.email || '', 
-          user.phoneNumber || ''
+          user.user_metadata?.phone || ''
         )
         
         if (createResult.error) {
@@ -85,7 +116,7 @@ function StudentDashboard() {
         }
         
         // Try to get student data again
-        studentResult = await getStudentData(user.uid)
+        studentResult = await getStudentData(user.id)
         if (studentResult.error) {
           throw new Error(`Failed to fetch student data after creation: ${studentResult.error}`)
         }
@@ -102,12 +133,12 @@ function StudentDashboard() {
         balanceResult,
         referralCodesResult
       ] = await Promise.allSettled([
-        getStudentEarnings(user.uid),
-        getStudentPurchases(user.uid),
-        getStudentWithdrawals(user.uid),
-        getStudentAffiliateData(user.uid),
-        getAvailableBalance(user.uid),
-        getUserReferralCodes(user.uid)
+        getStudentEarnings(user.id),
+        getStudentPurchases(user.id),
+        getStudentWithdrawals(user.id),
+        getStudentAffiliateData(user.id),
+        getAvailableBalance(user.id),
+        getUserReferralCodes(user.id)
       ])
       
       // Helper to process settled promises
@@ -134,14 +165,14 @@ function StudentDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [user])
+  }, [user, checkUserProfileCompletion])
 
   useEffect(() => {
     loadDashboardData()
   }, [loadDashboardData])
 
   const handleLogout = async () => {
-    await signOut()
+    await supabase.auth.signOut()
     navigate('/', { replace: true })
   }
 
@@ -218,7 +249,7 @@ function StudentDashboard() {
           <div>
             {/* Welcome Header */}
             <h1 className="text-2xl font-black">
-              Welcome, {studentData?.name || user?.displayName || user?.email?.split('@')[0] || 'Student'} 👋
+              Welcome, {studentData?.name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Student'} 👋
             </h1>
             <p className="text-sm italic font-cursive text-gray-200" style={{ fontFamily: 'cursive' }}>
               Never Give Up 💪
@@ -359,7 +390,7 @@ function StudentDashboard() {
         {/* Withdrawals */}
         <section className="mb-12">
           <WithdrawalsCard
-            userId={user.uid}
+            userId={user.id}
             availableBalance={availableBalance}
             withdrawals={withdrawals}
             onSuccessfulWithdrawal={loadDashboardData}
@@ -399,64 +430,40 @@ function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Package-specific referral codes */}
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Your Package Referral Links</h3>
-                <p className="text-sm text-gray-600 mb-4 italic">
-                  Note: You'll earn commission based on your current package level, regardless of which package the referred person buys.
-                </p>
-                {userReferralCodes.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {userReferralCodes.map((referral, index) => (
-                      <Card key={index} className="border border-blue-200">
-                        <CardContent className="pt-4">
-                          <h4 className="font-bold text-blue-600">{referral.packages?.title || 'Unknown Package'}</h4>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Commission: {referral.packages?.commission_rate || 0}%
-                          </p>
-                          <div className="flex gap-2 mt-2">
-                            <Input
-                              value={referral.referral_link}
-                              readOnly
-                              className="bg-gray-50 text-sm"
-                            />
-                            <Button 
-                              variant="outline" 
-                              onClick={() => copyReferralLink(referral.referral_link)}
-                              className="flex items-center gap-1"
-                              size="sm"
-                            >
-                              {copied ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Copied!
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="h-4 w-4" />
-                                  Copy
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+              {/* Referral Links */}
+              {userReferralCodes.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">Your Referral Links</h3>
+                  <div className="space-y-4">
+                    {userReferralCodes.map((code) => (
+                      <div key={code.referral_code} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-semibold">{code.packages?.title || 'Course Package'}</p>
+                          <p className="text-sm text-gray-600 break-all">{code.referral_link}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyReferralLink(code.referral_link)}
+                          className="flex items-center gap-2"
+                        >
+                          {copied ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" />
+                              Copy
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600 mb-4">
-                      You haven't purchased any packages yet. Buy a package to unlock referral opportunities!
-                    </p>
-                    <Button asChild>
-                      <Link to="/">
-                        <Home className="h-4 w-4 mr-2" />
-                        Browse Packages
-                      </Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>

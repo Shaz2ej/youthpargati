@@ -1,19 +1,30 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { supabase } from '@/lib/supabase.js'
 
-// Firebase configuration provided by the user
-const firebaseConfig = {
-  apiKey: "AIzaSyCdCPlWV7YaiXwvxkcSk8bTkWbqC0SJOWI",
-  authDomain: "login-register-746b8.firebaseapp.com",
-  projectId: "login-register-746b8",
-  storageBucket: "login-register-746b8.firebasestorage.app",
-  messagingSenderId: "778956685525",
-  appId: "1:778956685525:web:d279c84c761ea267c3a25c"
-};
+// Function to sign in with Google using Supabase
+export const signInWithGoogle = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`
+    }
+  })
+  
+  if (error) {
+    throw error
+  }
+  
+  return data
+}
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Function to sign out
+export const signOut = async () => {
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    throw error
+  }
+}
 
-export default app;
+// Export supabase client for other uses
+export { supabase }
 
-
+export default supabase

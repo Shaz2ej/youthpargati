@@ -33,20 +33,11 @@ function PaymentSuccess() {
           throw new Error('Missing package data or user authentication')
         }
         
-        // Refresh Supabase session to ensure it's synchronized with Firebase auth
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) {
-          console.error('Error getting Supabase session:', sessionError)
-        }
-        
-        const packageData = JSON.parse(storedPackage)
-        console.log('Package data:', packageData);
-        
         // Get student ID from Supabase
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')
-          .eq('firebase_uid', user.uid)
+          .eq('firebase_uid', user.id)
           .single()
         
         if (studentError) {
@@ -57,6 +48,7 @@ function PaymentSuccess() {
         console.log('Student data:', studentData);
         
         // Prepare purchase data - let Supabase triggers handle commission calculation
+        const packageData = JSON.parse(storedPackage)
         const purchaseData = {
           student_id: studentData.id,
           package_id: packageData.id,
@@ -68,21 +60,6 @@ function PaymentSuccess() {
         
         console.log('Purchase data to insert:', purchaseData);
         
-        // 1. Get the current Firebase ID Token
-        const token = await user.getIdToken();
-        
-        // 2. Explicitly sign in with the ID Token to update the Supabase client's session
-        const { error: tokenError } = await supabase.auth.signInWithIdToken({
-          provider: 'firebase', // Ensure this is the correct provider name
-          token: token,
-        });
-        
-        if (tokenError) {
-          console.error("Critical Error: Supabase token update failed:", tokenError);
-          throw new Error('Failed to authenticate with Supabase: ' + tokenError.message);
-        }
-        
-        // 3. NOW, proceed with the insert operation (which will now use the correct token)
         // Insert purchase record
         const { data: purchaseResult, error: insertError } = await supabase
           .from('purchases')
