@@ -1,20 +1,4 @@
-"In the StudentDashboard.jsx component:
-
-Action: Implement a useEffect to force a page reload only when the user is being redirected from the Supabase OAuth flow (i.e., when a fragment like #access_token is present in the URL).
-
-Add a useEffect hook.
-
-Inside the hook, check if the URL contains '#access_token' or '#error'.
-
-If it does, replace the current URL using a full page reload without those tokens:
-
-JavaScript
-
-if (window.location.hash.includes('#access_token') || window.location.hash.includes('#error')) {
-    // This ensures the Auth Provider gets time to fully sync the user state.
-    window.location.replace('/dashboard');
-}
-The useEffect should run only once on component mount."import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Input } from '@/components/ui/input.jsx'
