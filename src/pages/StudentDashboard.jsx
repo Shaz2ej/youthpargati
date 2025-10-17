@@ -90,7 +90,11 @@ function StudentDashboard() {
 
   // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
-    if (!user?.id) return
+    // Check if user.id is provided
+    if (!user || !user.id) {
+      console.error('User ID is missing for dashboard data loading')
+      return
+    }
     
     setLoading(true)
     setError('')
