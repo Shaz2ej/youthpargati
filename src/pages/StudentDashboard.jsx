@@ -52,6 +52,14 @@ function StudentDashboard() {
   const [availableBalance, setAvailableBalance] = useState(0)
   const [copied, setCopied] = useState(false)
 
+  // Force page reload when redirected from Supabase OAuth flow
+  useEffect(() => {
+    if (window.location.hash.includes('#access_token') || window.location.hash.includes('#error')) {
+      // This ensures the Auth Provider gets time to fully sync the user state.
+      window.location.replace('/dashboard');
+    }
+  }, []);
+
   // Constants
   const COPIED_TIMEOUT = 2000;
 
