@@ -62,6 +62,13 @@ function Home() {
       return
     }
     
+    // Check if user.uid is provided
+    if (!user.uid) {
+      console.error('User UID is missing')
+      alert('User authentication error. Please try logging in again.')
+      return
+    }
+    
     // Set processing state for this package
     setProcessing(prev => ({ ...prev, [pkg.id]: true }))
     

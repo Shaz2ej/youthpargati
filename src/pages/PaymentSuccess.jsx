@@ -33,6 +33,12 @@ function PaymentSuccess() {
           throw new Error('Missing package data or user authentication')
         }
         
+        // Check if user.id is provided
+        if (!user.id) {
+          console.error('User ID is missing')
+          throw new Error('User authentication error. Please try logging in again.')
+        }
+        
         // Get student ID from Supabase
         const { data: studentData, error: studentError } = await supabase
           .from('students')

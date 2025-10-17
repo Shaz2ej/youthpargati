@@ -60,6 +60,12 @@ function StudentDashboard() {
     if (!user?.id) return
     
     try {
+      // Check if user.id is provided
+      if (!user || !user.id) {
+        console.error('User ID is missing for profile check')
+        return
+      }
+      
       // Get student data to check if phone number exists
       const { data, error } = await supabase
         .from('students')

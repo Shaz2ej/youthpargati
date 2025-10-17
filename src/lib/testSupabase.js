@@ -29,6 +29,12 @@ export const testStudentExists = async (firebaseUid) => {
   try {
     console.log('Testing if student exists for UID:', firebaseUid)
     
+    // Check if firebaseUid is provided
+    if (!firebaseUid) {
+      console.error('Firebase UID is missing')
+      return { exists: false, error: 'Firebase UID is required' }
+    }
+    
     const { data, error } = await supabase
       .from('students')
       .select('*')

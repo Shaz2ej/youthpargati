@@ -108,6 +108,12 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
       
       // Save order information to purchases table before redirecting
       try {
+        // Check if user_id is provided
+        if (!orderData.user_id) {
+          console.error('User ID is missing for purchase record creation')
+          throw new Error('User ID is required to create purchase record')
+        }
+        
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')

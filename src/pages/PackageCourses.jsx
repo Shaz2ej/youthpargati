@@ -25,6 +25,13 @@ function PackageCourses() {
       return
     }
     
+    // Check if user.uid is provided
+    if (!user.uid) {
+      console.error('User UID is missing')
+      alert('User authentication error. Please try logging in again.')
+      return
+    }
+    
     setProcessing(true)
     
     try {

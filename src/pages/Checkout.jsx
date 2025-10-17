@@ -47,6 +47,13 @@ function Checkout() {
       return
     }
     
+    // Check if user.uid is provided
+    if (!user.uid) {
+      console.error('User UID is missing')
+      setError('User authentication error. Please try logging in again.')
+      return
+    }
+    
     if (!packageData) {
       setError('Package data not found')
       return
