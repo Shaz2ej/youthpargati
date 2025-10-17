@@ -62,7 +62,7 @@ function StudentDashboard() {
     try {
       // Check if user.id is provided
       if (!user || !user.id) {
-        console.error('User ID is missing for profile check')
+        console.warn('Skipping profile check: User not fully loaded yet.')
         return
       }
       
@@ -92,7 +92,7 @@ function StudentDashboard() {
   const loadDashboardData = useCallback(async () => {
     // Check if user.id is provided
     if (!user || !user.id) {
-      console.error('User ID is missing for dashboard data loading')
+      console.warn('Skipping dashboard data load: User not fully loaded yet.')
       return
     }
     
