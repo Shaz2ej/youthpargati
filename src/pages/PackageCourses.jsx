@@ -20,15 +20,10 @@ function PackageCourses() {
   const [referralCode, setReferralCode] = useState('')
 
   const handleBuyNow = async () => {
-    if (!user) {
-      alert('Please login to purchase courses')
-      return
-    }
-    
-    // Check if user.uid is provided
-    if (!user.uid) {
-      console.error('User UID is missing')
-      alert('User authentication error. Please try logging in again.')
+    // Robust check at the very beginning of the handler
+    if (!user || !user.uid) {
+      console.warn('Purchase attempt blocked: User session not active.')
+      alert('Please log in to purchase courses.')
       return
     }
     

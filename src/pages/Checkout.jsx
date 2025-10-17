@@ -42,15 +42,10 @@ function Checkout() {
     console.log('Package data:', packageData);
     console.log('Referral code:', referralCode);
     
-    if (!user) {
-      setError('Please login to purchase courses')
-      return
-    }
-    
-    // Check if user.uid is provided
-    if (!user.uid) {
-      console.error('User UID is missing')
-      setError('User authentication error. Please try logging in again.')
+    // Robust check at the very beginning of the handler
+    if (!user || !user.uid) {
+      console.warn('Purchase attempt blocked: User session not active.')
+      setError('Please log in to purchase courses.')
       return
     }
     
