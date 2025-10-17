@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     return <div>Loading...</div>
   }
 
-  const value = { user, loading }
+  const value = { user, loading, isLoadingAuth }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

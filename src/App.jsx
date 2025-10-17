@@ -13,42 +13,55 @@ import VideoPlayerTestDemo from '@/pages/VideoPlayerTestDemo.jsx'
 import PaymentSuccess from '@/pages/PaymentSuccess.jsx'
 import Checkout from '@/pages/Checkout.jsx'
 import CompleteProfile from '@/pages/CompleteProfile.jsx'
-import { AuthProvider } from '@/context/AuthContext.jsx'
+import { AuthProvider, useAuth } from '@/context/AuthContext.jsx'
 import ProtectedRoute from '@/components/ProtectedRoute.jsx'
+
+function AppContent() {
+  const { isLoadingAuth } = useAuth()
+  
+  // Show loading screen while determining auth state
+  if (isLoadingAuth) {
+    return <div>Loading user session...</div>
+  }
+  
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/packages/:id/courses" element={<PackageCourses />} />
+        <Route path="/courses/:id/videos" element={<CourseVideos />} />
+        <Route path="/youtube-test" element={<YouTubeTestFixed />} />
+        <Route path="/video-player-example" element={<VideoPlayerExample />} />
+        <Route path="/video-player-demo" element={<VideoPlayerDemo />} />
+        <Route path="/video-test-demo" element={<VideoPlayerTestDemo />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/checkout" element={
+          <ProtectedRoute>
+            <Checkout />
+          </ProtectedRoute>
+        } />
+        <Route path="/complete-profile" element={
+          <ProtectedRoute>
+            <CompleteProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <StudentDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/packages/:id/courses" element={<PackageCourses />} />
-          <Route path="/courses/:id/videos" element={<CourseVideos />} />
-          <Route path="/youtube-test" element={<YouTubeTestFixed />} />
-          <Route path="/video-player-example" element={<VideoPlayerExample />} />
-          <Route path="/video-player-demo" element={<VideoPlayerDemo />} />
-          <Route path="/video-test-demo" element={<VideoPlayerTestDemo />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/checkout" element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          } />
-          <Route path="/complete-profile" element={
-            <ProtectedRoute>
-              <CompleteProfile />
-            </ProtectedRoute>
-          } />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <AppContent />
     </AuthProvider>
   )
 }
