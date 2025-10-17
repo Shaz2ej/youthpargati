@@ -319,6 +319,7 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
       .from('students')
       .upsert({
         id: supabaseUid,  // Use Supabase user ID as the primary key
+        firebase_uid: supabaseUid,
         name: name,
         email: email,
         phone: phone,
