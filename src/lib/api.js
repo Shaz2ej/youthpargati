@@ -324,7 +324,7 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
         phone: phone,
         referral_code: studentReferralCode
       }, {
-        onConflict: 'id'  // Conflict on the id field
+        onConflict: 'email'  // Conflict on the email field to handle duplicate emails
       })
       .select()
       .single()
