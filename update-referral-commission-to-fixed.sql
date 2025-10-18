@@ -38,7 +38,7 @@ BEGIN
             -- Update referrer's affiliate record
             UPDATE affiliates 
             SET total_commission = total_commission + fixed_commission,
-                total_referrals = total_referrals + 1,
+                total_leads = total_leads + 1,
                 updated_at = NOW()
             WHERE student_id = referrer_id;
         END IF;

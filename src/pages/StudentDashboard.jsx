@@ -29,12 +29,17 @@ import {
   getStudentAffiliateData,
   getAvailableBalance,
   createStudent,
+  ensureAffiliateRecord,
   getUserReferralCodes,
   generateUserReferralCodes
 } from '@/lib/api.js'
 import { testSupabaseConnection } from '@/lib/testSupabase.js'
+import { testAuthStatus } from '@/lib/testAuth.js'
+import { testRLSPolicies } from '@/lib/testRLS.js'
+import { testAffiliatesRecord } from '@/lib/testAffiliates.js'
 import { WithdrawalsCard } from '@/lib/WithdrawalsCard.jsx'
-import { supabase } from '@/firebase.js'
+// Use the default supabase client for direct queries
+import { supabase } from '@/lib/supabase.js'
 
 function StudentDashboard() {
   const { user, signOut } = useAuth()
@@ -56,7 +61,10 @@ function StudentDashboard() {
   useEffect(() => {
     if (window.location.hash.includes('#access_token') || window.location.hash.includes('#error')) {
       // This ensures the Auth Provider gets time to fully sync the user state.
-      window.location.replace('/dashboard');
+      // Adding a small delay to ensure auth context has time to update
+      setTimeout(() => {
+        window.location.replace('/dashboard');
+      }, 1000);
     }
   }, []);
 
@@ -98,51 +106,75 @@ function StudentDashboard() {
 
   // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
-    // Check if user.id is provided
-    if (!user || !user.id) {
-      console.warn('Skipping dashboard data load: User not fully loaded yet.')
-      return
+    if (!user?.id) {
+      console.log('StudentDashboard: No user ID, returning');
+      return;
     }
     
-    setLoading(true)
-    setError('')
+    console.log('StudentDashboard: Loading dashboard data for user', user.id);
     
     try {
-      // First check if user has completed profile
-      await checkUserProfileCompletion()
+      setLoading(true)
+      setError('')
       
-      // Test Supabase connection first
-      const connectionTest = await testSupabaseConnection()
-      if (!connectionTest.success) {
-        throw new Error(`Database connection failed: ${connectionTest.error}`)
-      }
+      // Test authentication status
+      console.log('StudentDashboard: Testing authentication status...');
+      const authTestResult = await testAuthStatus();
+      console.log('StudentDashboard: Authentication test result', authTestResult);
+      
+      // Test RLS policies
+      console.log('StudentDashboard: Testing RLS policies...');
+      const rlsTestResult = await testRLSPolicies(user.id);
+      console.log('StudentDashboard: RLS test result', rlsTestResult);
+      
+      // Test affiliates record
+      console.log('StudentDashboard: Testing affiliates record...');
+      const affiliatesTestResult = await testAffiliatesRecord(user.id);
+      console.log('StudentDashboard: Affiliates test result', affiliatesTestResult);
+      
       // First, try to get student data
+      console.log('StudentDashboard: Getting student data...');
       let studentResult = await getStudentData(user.id)
+      console.log('StudentDashboard: Student data result', studentResult);
       
       // If student doesn't exist, create one
       if (studentResult.error === 'No student record found') {
-        console.log('Student record not found, creating new one...')
+        console.log('StudentDashboard: Student record not found, creating new one...')
         const createResult = await createStudent(
           user.id, 
           user.user_metadata?.name || 'Student', 
           user.email || '', 
           user.user_metadata?.phone || ''
         )
+        console.log('StudentDashboard: Create student result', createResult);
         
         if (createResult.error) {
           throw new Error(`Failed to create student record: ${createResult.error}`)
         }
         
         // Try to get student data again
+        console.log('StudentDashboard: Getting student data again after creation...');
         studentResult = await getStudentData(user.id)
+        console.log('StudentDashboard: Student data result after creation', studentResult);
         if (studentResult.error) {
           throw new Error(`Failed to fetch student data after creation: ${studentResult.error}`)
         }
       } else if (studentResult.error) {
         throw new Error(`Failed to fetch student data: ${studentResult.error}`)
       }
+      
+      // Ensure affiliate record exists
+      console.log('StudentDashboard: Ensuring affiliate record exists...');
+      const affiliateEnsureResult = await ensureAffiliateRecord(studentResult.data.id, studentResult.data.referral_code);
+      console.log('StudentDashboard: Affiliate ensure result', affiliateEnsureResult);
+      
+      if (affiliateEnsureResult.error) {
+        console.error('StudentDashboard: Failed to ensure affiliate record', affiliateEnsureResult.error);
+        // Don't throw error here as it's not critical for dashboard loading
+      }
 
       // Now fetch all other data
+      console.log('StudentDashboard: Fetching all other data...');
       const [
         earningsResult,
         purchasesResult,
@@ -185,9 +217,13 @@ function StudentDashboard() {
     }
   }, [user, checkUserProfileCompletion])
 
+  // Ensure student record exists when dashboard loads
   useEffect(() => {
-    loadDashboardData()
-  }, [loadDashboardData])
+    console.log('StudentDashboard: Checking if student record exists for user', user?.id);
+    if (user?.id) {
+      loadDashboardData();
+    }
+  }, [user, loadDashboardData]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

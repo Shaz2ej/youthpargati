@@ -145,7 +145,7 @@ function WithdrawalsCard({
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-semibold">{formatCurrency(withdrawal.amount)}</p>
-                          <p className="text-sm text-gray-600">{formatDate(withdrawal.request_date)}</p>
+                          <p className="text-sm text-gray-600">{formatDate(withdrawal.created_at)}</p>
                         </div>
                         {getStatusBadge(withdrawal.status)}
                       </div>

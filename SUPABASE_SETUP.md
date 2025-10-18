@@ -125,4 +125,11 @@ Common issues:
 - **Data not loading**: Check browser console for errors
 - **Permission errors**: Ensure user is properly authenticated
 
+## 15. Migration for Existing Users
+
+If you have existing users in your database, you may need to run the affiliate record migration to ensure all students have affiliate records:
+
+1. Run the `migrate-affiliate-records.sql` script in your Supabase SQL Editor
+2. This will create affiliate records for any students that don't already have them
+
 For more help, check the [Supabase documentation](https://supabase.com/docs).

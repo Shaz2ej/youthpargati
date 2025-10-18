@@ -6,10 +6,11 @@ import { useNavigate } from 'react-router-dom'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 import { supabase } from '@/lib/supabase.js'
+import { ensureStudentRecord } from '@/lib/api.js'
 import { Home, User, CreditCard } from 'lucide-react'
 
 function Checkout() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [packageData, setPackageData] = useState(null)
   const [referralCode, setReferralCode] = useState('')
@@ -38,16 +39,38 @@ function Checkout() {
   }, [])
 
   const handleProcessPayment = async () => {
-    console.log('Processing payment for user:', user);
-    console.log('Package data:', packageData);
-    console.log('Referral code:', referralCode);
+    console.log('Checkout: handleProcessPayment called');
+    console.log('Checkout: Current user state', user);
+    console.log('Checkout: Current auth context', { user, loading });
+    console.log('Checkout: Package data:', packageData);
+    console.log('Checkout: Referral code:', referralCode);
+    
+    // More robust check - wait for auth state to be fully loaded
+    if (loading) {
+      console.warn('Purchase attempt blocked: Auth state still loading');
+      setError('Please wait, still loading user session...');
+      return;
+    }
     
     // Robust check at the very beginning of the handler
-    if (!user || !user.uid) {
-      console.warn('Purchase attempt blocked: User session not active.')
+    if (!user) {
+      console.warn('Purchase attempt blocked: No user object');
+      console.log('Checkout: User check failed. User:', user);
       setError('Please log in to purchase courses.')
       return
     }
+    
+    if (!user.id) {
+      console.warn('Purchase attempt blocked: User ID not available');
+      console.log('Checkout: User ID check failed. User:', user);
+      setError('Please log in to purchase courses.')
+      return
+    }
+    
+    console.log('Checkout: User authenticated', user.id);
+    
+    // Small delay to ensure auth state is fully loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     if (!packageData) {
       setError('Package data not found')
@@ -58,26 +81,27 @@ function Checkout() {
     setError('')
     
     try {
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('firebase_uid', user.uid)
-        .single()
+      console.log('Checkout: Ensuring student record exists for user', user.id);
       
-      if (userError) {
-        console.error('User data error:', userError)
-        setError('Failed to get user data. Please try again.')
-        return
+      // Ensure student record exists
+      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
+      console.log('Checkout: Ensure student record result', studentResult);
+      
+      if (studentResult.error) {
+        console.error('Failed to ensure student record:', studentResult.error);
+        setError('Failed to prepare user profile for purchase. Please try again.');
+        setProcessing(false)
+        return;
       }
       
-      console.log('User data retrieved:', userData);
+      const studentData = studentResult.data;
+      console.log('User data retrieved:', studentData);
       
       // Process payment with referral code if provided
-      const result = await handlePackagePayment(packageData, {
-        uid: user.uid,
-        name: userData.name,
-        phone: userData.phone
+      const result = await handlePackagePayment(packageData, {  // Fixed: was packageInfo
+        uid: user.id,  // Use user.id (Supabase user ID) for the payment
+        name: studentData.name,
+        phone: studentData.phone
       }, referralCode)
       
       console.log('Payment result:', result);

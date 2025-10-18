@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { supabase } from '@/firebase.js'
+import { supabase } from '@/lib/supabase.js'
 import { createStudent } from '@/lib/api.js'
 
 function Register() {

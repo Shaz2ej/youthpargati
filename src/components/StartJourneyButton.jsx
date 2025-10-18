@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext.jsx'
 
 const StartJourneyButton = () => {
   const { user, loading } = useAuth()
+  
+  console.log('StartJourneyButton: Auth state', { user, loading });
 
   if (loading) {
     return (
@@ -21,6 +23,7 @@ const StartJourneyButton = () => {
 
   if (user) {
     // User is logged in - show "Your Dashboard" button
+    console.log('StartJourneyButton: User logged in, showing dashboard button');
     return (
       <Button 
         size="lg" 
@@ -34,6 +37,8 @@ const StartJourneyButton = () => {
       </Button>
     )
   }
+  
+  console.log('StartJourneyButton: User not logged in, showing start journey button');
 
   // User is not logged in - show "Start Your Journey" button
   return (

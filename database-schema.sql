@@ -66,7 +66,6 @@ CREATE TABLE IF NOT EXISTS affiliates (
     referral_code TEXT UNIQUE NOT NULL,
     total_leads INTEGER DEFAULT 0,
     total_commission DECIMAL(10,2) DEFAULT 0.00,
-    total_referrals INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -201,10 +200,10 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_affiliate_stats()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Update affiliate commission
+    -- Update affiliate commission and leads
     UPDATE affiliates 
     SET total_commission = total_commission + NEW.commission_earned,
-        total_referrals = total_referrals + 1,
+        total_leads = total_leads + 1,
         updated_at = NOW()
     WHERE student_id = NEW.student_id;
     
@@ -343,7 +342,7 @@ BEGIN
             -- Update referrer's affiliate record
             UPDATE affiliates 
             SET total_commission = total_commission + fixed_commission,
-                total_referrals = total_referrals + 1,
+                total_leads = total_leads + 1,
                 updated_at = NOW()
             WHERE student_id = referrer_id;
         END IF;

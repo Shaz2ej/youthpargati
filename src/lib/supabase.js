@@ -5,8 +5,18 @@ const SUPABASE_URL = 'https://pnupcskyrxivtjhwmvax.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBjc2t5cnhpdnRqaHdtdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzAxNDIsImV4cCI6MjA3MTk0NjE0Mn0.Q0Qp4CFCXWTSdFqbqR1nouEEF2_jydgPfhXRoygKFx0'
 const USE_MOCK_DATA = false
 
-// Create Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Create Supabase client with proper headers and auth settings
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
 // Mock client for development when Supabase is not available
 class MockSupabaseClient {
@@ -52,7 +62,7 @@ class MockSupabaseClient {
           amount: 376,
           purchase_date: '2024-01-15T10:30:00Z',
           status: 'completed',
-          commission_earned: 37.6
+          commission: 37.6
         },
         {
           id: 2,
@@ -61,7 +71,7 @@ class MockSupabaseClient {
           amount: 532,
           purchase_date: '2024-01-20T14:45:00Z',
           status: 'completed',
-          commission_earned: 53.2
+          commission: 53.2
         }
       ],
       withdrawals: [
@@ -69,7 +79,7 @@ class MockSupabaseClient {
           id: 1,
           student_id: 'mock-user-id',
           amount: 50,
-          request_date: '2024-01-25T09:00:00Z',
+          created_at: '2024-01-25T09:00:00Z',
           status: 'completed',
           processed_date: '2024-01-26T10:00:00Z'
         },
@@ -77,7 +87,7 @@ class MockSupabaseClient {
           id: 2,
           student_id: 'mock-user-id',
           amount: 30,
-          request_date: '2024-02-01T11:30:00Z',
+          created_at: '2024-02-01T11:30:00Z',
           status: 'pending'
         }
       ],
@@ -97,7 +107,14 @@ class MockSupabaseClient {
 }
 
 // Export the appropriate client based on configuration
+// For API functions, we want to use the authenticated client
 export const supabaseClient = USE_MOCK_DATA ? new MockSupabaseClient() : supabase
+
+// Also export the default supabase client for direct usage
+export default supabase
+
+// Export the supabase instance directly for consistency
+export { supabase }
 
 // Optional debug logs
 console.log('Supabase URL:', SUPABASE_URL)

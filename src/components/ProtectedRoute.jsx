@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext.jsx'
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   const location = useLocation()
+  
+  console.log('ProtectedRoute: Checking auth state', { user, loading });
 
   if (loading) {
     return (
@@ -15,12 +17,13 @@ function ProtectedRoute({ children }) {
   }
 
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
     return <Navigate to="/login" replace state={{ from: location }} />
   }
+  
+  console.log('ProtectedRoute: User authenticated, rendering children');
 
   return children
 }
 
 export default ProtectedRoute
-
-

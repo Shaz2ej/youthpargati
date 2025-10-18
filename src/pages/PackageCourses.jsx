@@ -8,10 +8,11 @@ import { supabase } from '@/lib/supabase.js'
 import { getCoursesByPackageId } from '@/lib/api.js'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
+import { ensureStudentRecord } from '@/lib/api.js'
 
 function PackageCourses() {
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user, isLoadingAuth } = useAuth()
   const [courses, setCourses] = useState([])
   const [packageInfo, setPackageInfo] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,34 +21,60 @@ function PackageCourses() {
   const [referralCode, setReferralCode] = useState('')
 
   const handleBuyNow = async () => {
+    console.log('PackageCourses: handleBuyNow called');
+    console.log('PackageCourses: Current user state', user);
+    console.log('PackageCourses: Current auth context', { user, isLoadingAuth, loading });
+    
+    // More robust check - wait for auth state to be fully loaded
+    if (isLoadingAuth || loading) {
+      console.warn('Purchase attempt blocked: Auth state still loading');
+      alert('Please wait, still loading user session...');
+      return;
+    }
+    
     // Robust check at the very beginning of the handler
-    if (!user || !user.uid) {
-      console.warn('Purchase attempt blocked: User session not active.')
+    if (!user) {
+      console.warn('Purchase attempt blocked: No user object');
+      console.log('PackageCourses: User check failed. User:', user);
       alert('Please log in to purchase courses.')
       return
     }
     
+    if (!user.id) {
+      console.warn('Purchase attempt blocked: User ID not available');
+      console.log('PackageCourses: User ID check failed. User:', user);
+      alert('Please log in to purchase courses.')
+      return
+    }
+    
+    console.log('PackageCourses: User authenticated', user.id);
+    
+    // Small delay to ensure auth state is fully loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     setProcessing(true)
     
     try {
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('firebase_uid', user.uid)
-        .single()
+      console.log('PackageCourses: Ensuring student record exists for user', user.id);
       
-      if (userError) {
-        console.error('User data error:', userError)
-        alert('Failed to get user data. Please try again.')
-        return
+      // Ensure student record exists
+      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
+      console.log('PackageCourses: Ensure student record result', studentResult);
+      
+      if (studentResult.error) {
+        console.error('Failed to ensure student record:', studentResult.error);
+        alert('Failed to prepare user profile for purchase. Please try again.');
+        setProcessing(false)
+        return;
       }
+      
+      const studentData = studentResult.data;
       
       // Process payment with referral code if provided
       await handlePackagePayment(packageInfo, {
-        uid: user.uid,
-        name: userData.name,
-        phone: userData.phone
+        uid: user.id,  // Use user.id (Supabase user ID) for the payment
+        name: studentData.name,
+        phone: studentData.phone
       }, referralCode)
     } catch (error) {
       console.error('Payment error:', error)
@@ -246,7 +273,7 @@ function PackageCourses() {
               <Button
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6"
                 onClick={handleBuyNow}
-                disabled={processing}
+                disabled={isLoadingAuth || !user || processing}
               >
                 {processing ? 'Processing...' : 'Buy This Package Now'}
               </Button>

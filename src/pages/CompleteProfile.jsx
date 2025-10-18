@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { supabase } from '@/firebase.js'
+import { supabase } from '@/lib/supabase.js'
 
 export default function CompleteProfile() {
   return null;

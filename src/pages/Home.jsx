@@ -18,13 +18,14 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase.js'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 import StartJourneyButton from '@/components/StartJourneyButton.jsx'
+import { ensureStudentRecord } from '@/lib/api.js'
+import { supabase } from '@/lib/supabase.js'
 
 function Home() {
-  const { user } = useAuth()
+  const { user, isLoadingAuth } = useAuth()
   const navigate = useNavigate()
   const [packages, setPackages] = useState([])
   const [error, setError] = useState(null)
@@ -57,29 +58,54 @@ function Home() {
   ]
 
   const handleBuyNow = async (pkg) => {
+    console.log('handleBuyNow: Called with package', pkg);
+    console.log('handleBuyNow: Current user state', user);
+    console.log('handleBuyNow: Current auth context', { user, isLoadingAuth });
+    
+    // More robust check - wait for auth state to be fully loaded
+    if (isLoadingAuth) {
+      console.warn('Purchase attempt blocked: Auth state still loading');
+      alert('Please wait, still loading user session...');
+      return;
+    }
+    
     // Robust check at the very beginning of the handler
-    if (!user || !user.uid) {
-      console.warn('Purchase attempt blocked: User session not active.')
+    if (!user) {
+      console.warn('Purchase attempt blocked: No user object');
+      console.log('handleBuyNow: User check failed. User:', user);
       alert('Please log in to purchase courses.')
       return
     }
+    
+    if (!user.id) {
+      console.warn('Purchase attempt blocked: User ID not available');
+      console.log('handleBuyNow: User ID check failed. User:', user);
+      alert('Please log in to purchase courses.')
+      return
+    }
+    
+    console.log('handleBuyNow: User authenticated', user.id);
+    
+    // Small delay to ensure auth state is fully loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Set processing state for this package
     setProcessing(prev => ({ ...prev, [pkg.id]: true }))
     
     try {
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('firebase_uid', user.uid)
-        .single()
+      console.log('handleBuyNow: Ensuring student record exists for user', user.id);
       
-      if (userError) {
-        console.error('User data error:', userError)
-        alert('Failed to get user data. Please try again.')
-        return
+      // Ensure student record exists
+      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
+      console.log('handleBuyNow: Ensure student record result', studentResult);
+      
+      if (studentResult.error) {
+        console.error('Failed to ensure student record:', studentResult.error);
+        alert('Failed to prepare user profile for purchase. Please try again.');
+        return;
       }
+      
+      const studentData = studentResult.data;
       
       // Navigate to checkout page with package and referral code data
       // Store package and referral code in session storage for the checkout page
@@ -149,6 +175,8 @@ function Home() {
           {/* Motivational Overlay */}
 
           <StartJourneyButton />
+          
+          {/* Test buttons for debugging - REMOVED as per user request */}
         </div>
         {/* Animated Background Elements */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-400 rounded-full opacity-20 animate-bounce"></div>
@@ -266,7 +294,7 @@ function Home() {
                     <Button
                       className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-3"
                       onClick={() => handleBuyNow(pkg)}
-                      disabled={processing[pkg.id]}
+                      disabled={isLoadingAuth || !user || processing[pkg.id]}
                     >
                       {processing[pkg.id] ? 'Processing...' : 'Buy Now'}
                     </Button>
@@ -300,7 +328,7 @@ function Home() {
                     <Button
                       className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-3"
                       onClick={() => handleBuyNow(pkg)}
-                      disabled={processing[pkg.id]}
+                      disabled={isLoadingAuth || !user || processing[pkg.id]}
                     >
                       {processing[pkg.id] ? 'Processing...' : 'Buy Now'}
                     </Button>

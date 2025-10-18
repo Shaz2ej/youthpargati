@@ -1,26 +1,43 @@
-import { supabaseClient } from './supabase.js'
+import { supabaseClient, supabase } from './supabase.js'
+
+// Log the supabaseClient to see what we're using
+console.log('API: Imported supabaseClient', supabaseClient);
+console.log('API: Imported supabase', supabase);
 
 // API functions for student dashboard data
 
 // Helper to get internal student ID from Supabase UID to avoid repetition.
 const getStudentIdBySupabaseUid = async (supabaseUid) => {
+  console.log('getStudentIdBySupabaseUid: Called with supabaseUid', supabaseUid);
+  
   if (!supabaseUid) {
     // This case should ideally not be hit if called from the dashboard, but it's good practice.
+    console.log('getStudentIdBySupabaseUid: No supabaseUid provided');
     return { id: null, error: new Error("Supabase UID is required.") };
   }
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select('id')
-      .eq('id', supabaseUid)  // Changed from firebase_uid to id
-      .single();
+  
+  console.log('getStudentIdBySupabaseUid: Making request to students table');
+  const { data, error } = await supabaseClient
+    .from('students')
+    .select('id')  // We want the database-generated ID
+    .eq('firebase_uid', supabaseUid)  // But we query by firebase_uid
+    .single();
+
+  console.log('getStudentIdBySupabaseUid: Request result', data, error);
 
   if (error) {
     // Return null id if student not found, but don't treat it as a throw-worthy error here.
     // The calling function can decide how to handle a non-existent student.
-    if (error.code === 'PGRST116' || error.message.includes('No rows')) return { id: null, error: null };
+    if (error.code === 'PGRST116' || error.message.includes('No rows')) {
+      console.log('getStudentIdBySupabaseUid: No student found with this firebase_uid');
+      return { id: null, error: null };
+    }
+    console.log('getStudentIdBySupabaseUid: Other error occurred', error);
     return { id: null, error }; // Return other DB errors.
   }
-  return { id: data.id, error: null };
+  
+  console.log('getStudentIdBySupabaseUid: Success, returning student ID', data.id);
+  return { id: data.id, error: null };  // Return the database-generated ID
 };
 
 // Function to get courses by package ID
@@ -44,20 +61,34 @@ export const getCoursesByPackageId = async (packageId) => {
 
 export const getStudentData = async (userId) => {
   try {
+    console.log('getStudentData: Called with userId', userId);
+    
+    // Test if we can get the current user
+    try {
+      const { data: currentUser, error: userError } = await supabaseClient.auth.getUser();
+      console.log('getStudentData: Current user', currentUser, userError);
+    } catch (userCheckError) {
+      console.error('getStudentData: Error checking current user', userCheckError);
+    }
+    
     const { data, error } = await supabaseClient
       .from('students')
       .select('*')
-      .eq('id', userId)  // Changed from firebase_uid to id
+      .eq('firebase_uid', userId)  // Query by firebase_uid
       .single()
+    
+    console.log('getStudentData: Result', data, error);
     
     if (error) {
       console.error('Error fetching student data:', error)
       // Check if it's a "no rows" error (student doesn't exist)
       if (error.code === 'PGRST116' || error.message.includes('No rows')) {
+        console.log('getStudentData: No student record found');
         return { data: null, error: 'No student record found' }
       }
       throw error
     }
+    console.log('getStudentData: Student data found', data);
     return { data, error: null }
   } catch (error) {
     console.error('getStudentData error:', error)
@@ -97,7 +128,7 @@ export const getStudentEarnings = async (userId) => {
     // Get purchases for commission calculation
     const { data: purchases, error: purchasesError } = await supabaseClient
       .from('purchases')
-      .select('commission_earned, purchase_date')
+      .select('commission, purchase_date')
       .eq('student_id', studentId)
       .eq('status', 'completed')
     
@@ -112,22 +143,22 @@ export const getStudentEarnings = async (userId) => {
 
     const day1Earnings = purchases
       .filter(p => new Date(p.purchase_date) >= day1)
-      .reduce((sum, p) => sum + (p.commission_earned || 0), 0)
+      .reduce((sum, p) => sum + (p.commission || 0), 0)
 
     const day10Earnings = purchases
       .filter(p => new Date(p.purchase_date) >= day10)
-      .reduce((sum, p) => sum + (p.commission_earned || 0), 0)
+      .reduce((sum, p) => sum + (p.commission || 0), 0)
 
     const day20Earnings = purchases
       .filter(p => new Date(p.purchase_date) >= day20)
-      .reduce((sum, p) => sum + (p.commission_earned || 0), 0)
+      .reduce((sum, p) => sum + (p.commission || 0), 0)
 
     const day30Earnings = purchases
       .filter(p => new Date(p.purchase_date) >= day30)
-      .reduce((sum, p) => sum + (p.commission_earned || 0), 0)
+      .reduce((sum, p) => sum + (p.commission || 0), 0)
 
     const totalEarnings = purchases
-      .reduce((sum, p) => sum + (p.commission_earned || 0), 0)
+      .reduce((sum, p) => sum + (p.commission || 0), 0)
 
     return {
       data: {
@@ -178,7 +209,7 @@ export const getStudentWithdrawals = async (userId) => {
       .from('withdrawals')
       .select('*')
       .eq('student_id', studentId)
-      .order('request_date', { ascending: false })
+      .order('created_at', { ascending: false })
     
     if (error) throw error
     return { data, error: null }
@@ -190,30 +221,58 @@ export const getStudentWithdrawals = async (userId) => {
 
 export const getStudentAffiliateData = async (userId) => {
   try {
+    console.log('getStudentAffiliateData: Called with userId', userId);
+    
     const { id: studentId, error: studentIdError } = await getStudentIdBySupabaseUid(userId);
+    console.log('getStudentAffiliateData: Student ID lookup result', studentId, studentIdError);
+    
     if (studentIdError) throw studentIdError;
     if (!studentId) {
+      console.log('getStudentAffiliateData: No student ID found');
       return { data: { referral_code: 'N/A', total_leads: 0, total_commission: 0 }, error: null };
     }
 
+    // First, try to get the affiliate data
+    console.log('getStudentAffiliateData: Making request for studentId', studentId);
+    
+    // Log the supabaseClient to see what we're using
+    console.log('getStudentAffiliateData: Using supabaseClient', supabaseClient);
+    
+    // Test if we can get the current user
+    try {
+      const { data: currentUser, error: userError } = await supabaseClient.auth.getUser();
+      console.log('getStudentAffiliateData: Current user', currentUser, userError);
+    } catch (userCheckError) {
+      console.error('getStudentAffiliateData: Error checking current user', userCheckError);
+    }
+    
+    // Remove .single() to prevent 406 Not Acceptable error
+    // This will return an array instead of a single object
     const { data, error } = await supabaseClient
       .from('affiliates')
       .select('*')
-      .eq('student_id', studentId)
-      .single()
+      .eq('student_id', studentId);
+      // .single() removed to resolve 406 error
+    
+    console.log('getStudentAffiliateData: Request result', data, error);
     
     if (error) {
-      // It's not a critical error if a student doesn't have an affiliate record yet.
-      // This can happen if the record creation failed or for new users.
-      if (error.code === 'PGRST116') { // "No rows found" error code
-        return { data: { referral_code: 'N/A', total_leads: 0, total_commission: 0 }, error: null };
-      }
+      console.error('getStudentAffiliateData: Error from Supabase', error);
       throw error;
     }
-    return { data, error: null }
+    
+    // Handle the case where we now get an array instead of a single object
+    if (data && data.length > 0) {
+      console.log('getStudentAffiliateData: Affiliate record found', data[0]);
+      return { data: data[0], error: null };
+    } else {
+      // No affiliate record found
+      console.log('getStudentAffiliateData: No affiliate record found, returning default');
+      return { data: { referral_code: 'N/A', total_leads: 0, total_commission: 0 }, error: null };
+    }
   } catch (error) {
-    console.error('getStudentAffiliateData error:', error)
-    return { data: null, error: error.message }
+    console.error('getStudentAffiliateData error:', error);
+    return { data: null, error: error.message };
   }
 }
 
@@ -245,7 +304,7 @@ export const requestWithdrawal = async (userId, amount, upiId = null) => {
     const withdrawalData = {
       student_id: studentId,
       amount: amount,
-      request_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       status: 'pending'
     };
 
@@ -278,7 +337,7 @@ export const getAvailableBalance = async (userId) => {
     const [purchasesRes, withdrawalsRes] = await Promise.all([
       supabaseClient
         .from('purchases')
-        .select('commission_earned')
+        .select('commission')
         .eq('student_id', studentId)
         .eq('status', 'completed'),
       supabaseClient
@@ -291,7 +350,7 @@ export const getAvailableBalance = async (userId) => {
     if (purchasesRes.error) throw purchasesRes.error;
     if (withdrawalsRes.error) throw withdrawalsRes.error;
 
-    const totalEarnings = purchasesRes.data.reduce((sum, p) => sum + (p.commission_earned || 0), 0);
+    const totalEarnings = purchasesRes.data.reduce((sum, p) => sum + (p.commission || 0), 0);
     const totalWithdrawn = withdrawalsRes.data.reduce((sum, w) => sum + w.amount, 0);
 
     return { data: totalEarnings - totalWithdrawn, error: null };
@@ -311,15 +370,17 @@ export const getAvailableBalance = async (userId) => {
  */
 export const createStudent = async (supabaseUid, name, email, phone, referralCode = null) => {
   try {
+    console.log('createStudent: Called with', { supabaseUid, name, email, phone, referralCode });
+    
     // Generate a unique referral code
     const studentReferralCode = generateReferralCode(name)
+    console.log('createStudent: Generated referral code', studentReferralCode);
     
     // Use upsert instead of insert to prevent duplicate key errors
     const { data, error } = await supabaseClient
       .from('students')
       .upsert({
-        id: supabaseUid,  // Use Supabase user ID as the primary key
-        firebase_uid: supabaseUid,
+        firebase_uid: supabaseUid,  // Only set firebase_uid to the Supabase user ID
         name: name,
         email: email,
         phone: phone,
@@ -330,19 +391,30 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
       .select()
       .single()
 
+    console.log('createStudent: Result', data, error);
+    
     if (error) throw error
 
     // Create affiliate record
-    const { error: affiliateError } = await supabaseClient
+    console.log('createStudent: Creating affiliate record for student_id', data.id);
+    // Remove total_commission field to resolve the 400 Bad Request error
+    const affiliateData = {
+      student_id: data.id,  // Use the database-generated ID
+      referral_code: studentReferralCode,
+      total_leads: 0
+      // total_commission field removed to resolve schema cache issue
+    };
+    console.log('createStudent: Affiliate data to insert', affiliateData);
+    
+    const { data: affiliateResult, error: affiliateError } = await supabaseClient
       .from('affiliates')
-      .upsert({
-        student_id: data.id,
-        referral_code: studentReferralCode,
-        total_leads: 0,
-        total_commission: 0
-      }, {
+      .upsert(affiliateData, {
         onConflict: 'student_id'  // Conflict on the student_id field
       })
+      .select()
+      .single();
+    
+    console.log('createStudent: Affiliate record result', affiliateResult, affiliateError);
     
     if (affiliateError) {
       console.error('Error creating affiliate record:', affiliateError)
@@ -351,6 +423,7 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
     
     // If there's a referral code, find the referrer and create referral record
     if (referralCode) {
+      console.log('createStudent: Processing referral code', referralCode);
       const { data: referrerData, error: referrerError } = await supabaseClient
         .from('user_referral_codes')
         .select('user_id')
@@ -358,6 +431,7 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
         .single()
       
       if (!referrerError && referrerData) {
+        console.log('createStudent: Found referrer', referrerData);
         // Create referral record
         await supabaseClient
           .from('referrals')
@@ -384,6 +458,117 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
   }
 }
 
+/**
+ * Ensure student record exists, creating one if it doesn't
+ * @param {string} supabaseUid - Supabase user ID
+ * @param {Object} userMetadata - User metadata from auth provider
+ */
+export const ensureStudentRecord = async (supabaseUid, userMetadata = {}) => {
+  try {
+    console.log('ensureStudentRecord: Called with', { supabaseUid, userMetadata });
+    
+    // First, try to get existing student data
+    const studentResult = await getStudentData(supabaseUid);
+    console.log('ensureStudentRecord: Existing student check result', studentResult);
+    
+    // If student exists, return the data
+    if (studentResult.data && !studentResult.error) {
+      console.log('ensureStudentRecord: Student record found', studentResult.data);
+      return { data: studentResult.data, error: null };
+    }
+    
+    // If student doesn't exist, create one
+    if (studentResult.error === 'No student record found') {
+      console.log('ensureStudentRecord: Student record not found, creating new one...');
+      const createResult = await createStudent(
+        supabaseUid,
+        userMetadata?.name || 'Student',
+        userMetadata?.email || '',
+        userMetadata?.phone || ''
+      );
+      console.log('ensureStudentRecord: Create student result', createResult);
+      
+      if (createResult.error) {
+        console.error('ensureStudentRecord: Failed to create student', createResult.error);
+        return { data: null, error: createResult.error };
+      }
+      
+      console.log('ensureStudentRecord: Student record created successfully', createResult.data);
+      return { data: createResult.data, error: null };
+    }
+    
+    // If there was another error, return it
+    console.error('ensureStudentRecord: Error checking student record', studentResult.error);
+    return { data: null, error: studentResult.error };
+  } catch (error) {
+    console.error('ensureStudentRecord: Unexpected error', error);
+    return { data: null, error: error.message };
+  }
+};
+
+/**
+ * Ensure affiliate record exists for a student, creating one if it doesn't
+ * @param {string} studentId - Database-generated student ID
+ * @param {string} referralCode - Student's referral code
+ */
+export const ensureAffiliateRecord = async (studentId, referralCode) => {
+  try {
+    console.log('ensureAffiliateRecord: Called with', { studentId, referralCode });
+    
+    // First, try to get existing affiliate data
+    const { data, error } = await supabaseClient
+      .from('affiliates')
+      .select('*')
+      .eq('student_id', studentId)
+      .single();
+    
+    console.log('ensureAffiliateRecord: Existing affiliate check result', data, error);
+    
+    // If affiliate record exists, return it
+    if (data && !error) {
+      console.log('ensureAffiliateRecord: Affiliate record found', data);
+      return { data, error: null };
+    }
+    
+    // If no affiliate record exists (PGRST116 error), create one
+    if (error && error.code === 'PGRST116') {
+      console.log('ensureAffiliateRecord: No affiliate record found, creating new one...');
+      
+      // Remove total_commission field to resolve the 400 Bad Request error
+      const affiliateData = {
+        student_id: studentId,
+        referral_code: referralCode,
+        total_leads: 0
+        // total_commission field removed to resolve schema cache issue
+      };
+      
+      const { data: newAffiliateData, error: createError } = await supabaseClient
+        .from('affiliates')
+        .upsert(affiliateData, {
+          onConflict: 'student_id'
+        })
+        .select()
+        .single();
+      
+      console.log('ensureAffiliateRecord: Created affiliate record', newAffiliateData, createError);
+      
+      if (createError) {
+        console.error('ensureAffiliateRecord: Failed to create affiliate record', createError);
+        return { data: null, error: createError.message };
+      }
+      
+      return { data: newAffiliateData, error: null };
+    }
+    
+    // If there was another error, return it
+    console.error('ensureAffiliateRecord: Error checking affiliate record', error);
+    return { data: null, error: error?.message || 'Unknown error' };
+  } catch (error) {
+    console.error('ensureAffiliateRecord: Unexpected error', error);
+    return { data: null, error: error.message };
+  }
+};
+
 // Helper function to generate referral code
 const generateReferralCode = (name) => {
   const cleanName = name.replace(/\s+/g, '').toUpperCase()
@@ -393,15 +578,20 @@ const generateReferralCode = (name) => {
 
 /**
  * Get user's package-specific referral codes
- * @param {string} userId - Supabase user ID
+ * @param {string} userId - Supabase user ID (firebase_uid)
  */
 export const getUserReferralCodes = async (userId) => {
   try {
-    const { id: studentId, error: studentIdError } = await getStudentIdBySupabaseUid(userId);
-    if (studentIdError) throw studentIdError;
-    if (!studentId) {
-      return { data: [], error: null };
-    }
+    // First get the student record by firebase_uid to get the database-generated ID
+    const { data: studentData, error: studentError } = await supabaseClient
+      .from('students')
+      .select('id')
+      .eq('firebase_uid', userId)
+      .single()
+    
+    if (studentError) throw studentError;
+
+    const studentId = studentData.id;  // Use the database-generated ID
 
     // Get packages this user has purchased
     const { data: purchases, error: purchasesError } = await supabaseClient
@@ -439,18 +629,16 @@ export const getUserReferralCodes = async (userId) => {
 // Function to generate user referral codes for specific packages
 export const generateUserReferralCodes = async (userId, packageId) => {
   try {
-    const { id: studentId, error: studentIdError } = await getStudentIdBySupabaseUid(userId);
-    if (studentIdError) throw studentIdError;
-    if (!studentId) throw new Error("Student not found");
-
-    // Get student's referral code
+    // First get the student record by firebase_uid to get the database-generated ID
     const { data: studentData, error: studentError } = await supabaseClient
       .from('students')
-      .select('referral_code')
-      .eq('id', studentId)
+      .select('id, referral_code')
+      .eq('firebase_uid', userId)
       .single()
     
     if (studentError) throw studentError;
+
+    const studentId = studentData.id;  // Use the database-generated ID
 
     // Get package details
     const { data: packageData, error: packageError } = await supabaseClient

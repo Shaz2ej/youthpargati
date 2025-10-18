@@ -17,7 +17,9 @@ import { AuthProvider, useAuth } from '@/context/AuthContext.jsx'
 import ProtectedRoute from '@/components/ProtectedRoute.jsx'
 
 function AppContent() {
-  const { isLoadingAuth } = useAuth()
+  const { isLoadingAuth, user, loading } = useAuth()
+  
+  console.log('AppContent: Auth state', { isLoadingAuth, user, loading });
   
   // Show loading screen while determining auth state
   if (isLoadingAuth) {
