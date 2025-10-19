@@ -12,13 +12,12 @@ export const testAuth = async () => {
     console.log('Current user ID:', userId);
     
     // Try to get student data
-    console.log('Testing query with firebase_uid =', userId);
+    console.log('Testing query with supabase_auth_uid =', userId);
     const { data: studentData, error: studentError } = await supabase
       .from('students')
       .select('*')
-      .eq('firebase_uid', userId);
-    
-    console.log('Student data (firebase_uid):', studentData, studentError);
+      .eq('supabase_auth_uid', userId);
+    console.log('Student data (supabase_auth_uid):', studentData, studentError);
     
     // Try with eq('id', userId) as well to see which one works
     console.log('Testing query with id =', userId);

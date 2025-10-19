@@ -32,13 +32,13 @@ export const comprehensiveTest = async () => {
   // 3. Test different queries to find student record
   console.log('3. Testing student record queries...');
   
-  // Query 1: By firebase_uid
-  console.log('   Query 1: Looking for student with firebase_uid =', userId);
-  const { data: studentByFirebaseUid, error: error1 } = await supabase
+  // Query 1: By supabase_auth_uid
+  console.log('   Query 1: Looking for student with supabase_auth_uid =', userId);
+  const { data: studentBySupabaseAuthUid, error: error1 } = await supabase
     .from('students')
     .select('*')
-    .eq('firebase_uid', userId);
-  console.log('   Result 1:', studentByFirebaseUid, error1);
+    .eq('supabase_auth_uid', userId);
+  console.log('   Result 1:', studentBySupabaseAuthUid, error1);
   
   // Query 2: By id
   console.log('   Query 2: Looking for student with id =', userId);
@@ -58,7 +58,7 @@ export const comprehensiveTest = async () => {
     allStudents.forEach((student, index) => {
       console.log(`   Student ${index + 1}:`, {
         id: student.id,
-        firebase_uid: student.firebase_uid,
+        supabase_auth_uid: student.supabase_auth_uid,
         name: student.name,
         email: student.email
       });
@@ -68,11 +68,11 @@ export const comprehensiveTest = async () => {
   
   // 4. Test student record creation
   console.log('4. Testing student record creation...');
-  if (!studentByFirebaseUid || studentByFirebaseUid.length === 0) {
+  if (!studentBySupabaseAuthUid || studentBySupabaseAuthUid.length === 0) {
     console.log('   No student record found, attempting to create one...');
     
     const testStudent = {
-      firebase_uid: userId,
+      supabase_auth_uid: userId,
       name: sessionData.session.user.user_metadata?.name || 'Test User',
       email: sessionData.session.user.email || 'test@example.com',
       phone: '1234567890',

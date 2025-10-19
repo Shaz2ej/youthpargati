@@ -118,7 +118,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')
-          .eq('firebase_uid', orderData.user_id)
+          .eq('supabase_auth_uid', orderData.user_id)
           .single()
         
         if (studentError) {

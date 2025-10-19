@@ -86,7 +86,7 @@ function StudentDashboard() {
       const { data, error } = await supabase
         .from('students')
         .select('phone')
-        .eq('firebase_uid', user.id)
+        .eq('supabase_auth_uid', user.id)
         .single()
       
       if (error) {

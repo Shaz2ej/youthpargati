@@ -38,7 +38,7 @@ export const testStudentExists = async (firebaseUid) => {
     const { data, error } = await supabase
       .from('students')
       .select('*')
-      .eq('firebase_uid', firebaseUid)
+      .eq('supabase_auth_uid', firebaseUid)
       .single()
     
     if (error) {

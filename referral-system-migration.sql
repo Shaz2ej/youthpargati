@@ -23,7 +23,7 @@ ALTER TABLE user_referral_codes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own referral codes" ON user_referral_codes
     FOR SELECT USING (
         user_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 

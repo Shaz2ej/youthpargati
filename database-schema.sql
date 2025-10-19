@@ -7,7 +7,7 @@ ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
 -- Students table
 CREATE TABLE IF NOT EXISTS students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    firebase_uid TEXT UNIQUE NOT NULL,
+    supabase_auth_uid TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     phone TEXT,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS user_referral_codes (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_students_firebase_uid ON students(firebase_uid);
+CREATE INDEX IF NOT EXISTS idx_students_supabase_auth_uid ON students(supabase_auth_uid);
 CREATE INDEX IF NOT EXISTS idx_students_referral_code ON students(referral_code);
 CREATE INDEX IF NOT EXISTS idx_purchases_student_id ON purchases(student_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_date ON purchases(purchase_date);
@@ -112,16 +112,16 @@ ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
 
 -- Students can only see their own data
 CREATE POLICY "Students can view own data" ON students
-    FOR SELECT USING (firebase_uid = auth.jwt() ->> 'sub');
+    FOR SELECT USING (supabase_auth_uid = auth.jwt() ->> 'sub');
 
 CREATE POLICY "Students can update own data" ON students
-    FOR UPDATE USING (firebase_uid = auth.jwt() ->> 'sub');
+    FOR UPDATE USING (supabase_auth_uid = auth.jwt() ->> 'sub');
 
 -- Purchases policies
 CREATE POLICY "Students can view own purchases" ON purchases
     FOR SELECT USING (
         student_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 
@@ -130,21 +130,21 @@ CREATE POLICY "Allow students to insert their own purchases" ON purchases
 FOR INSERT WITH CHECK (
     -- Directly check if the student_id being inserted exists in the students table
     -- AND is linked to ANY authenticated user's UID (the user must be logged in).
-    student_id IN (SELECT id FROM students WHERE firebase_uid IS NOT NULL)
+    student_id IN (SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub')
 );
 
 -- Withdrawals policies
 CREATE POLICY "Students can view own withdrawals" ON withdrawals
     FOR SELECT USING (
         student_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 
 CREATE POLICY "Students can create own withdrawals" ON withdrawals
     FOR INSERT WITH CHECK (
         student_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 
@@ -152,7 +152,7 @@ CREATE POLICY "Students can create own withdrawals" ON withdrawals
 CREATE POLICY "Students can view own affiliate data" ON affiliates
     FOR SELECT USING (
         student_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 
@@ -160,7 +160,7 @@ CREATE POLICY "Students can view own affiliate data" ON affiliates
 CREATE POLICY "Students can view own referrals" ON referrals
     FOR SELECT USING (
         referrer_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 
@@ -168,7 +168,7 @@ CREATE POLICY "Students can view own referrals" ON referrals
 CREATE POLICY "Students can view own referral codes" ON user_referral_codes
     FOR SELECT USING (
         user_id IN (
-            SELECT id FROM students WHERE firebase_uid = auth.jwt() ->> 'sub'
+            SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
 

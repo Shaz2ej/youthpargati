@@ -20,7 +20,7 @@ const getStudentIdBySupabaseUid = async (supabaseUid) => {
   const { data, error } = await supabaseClient
     .from('students')
     .select('id')  // We want the database-generated ID
-    .eq('firebase_uid', supabaseUid)  // But we query by firebase_uid
+    .eq('supabase_auth_uid', supabaseUid)  // But we query by supabase_auth_uid
     .single();
 
   console.log('getStudentIdBySupabaseUid: Request result', data, error);
@@ -29,7 +29,7 @@ const getStudentIdBySupabaseUid = async (supabaseUid) => {
     // Return null id if student not found, but don't treat it as a throw-worthy error here.
     // The calling function can decide how to handle a non-existent student.
     if (error.code === 'PGRST116' || error.message.includes('No rows')) {
-      console.log('getStudentIdBySupabaseUid: No student found with this firebase_uid');
+      console.log('getStudentIdBySupabaseUid: No student found with this supabase_auth_uid');
       return { id: null, error: null };
     }
     console.log('getStudentIdBySupabaseUid: Other error occurred', error);
@@ -74,7 +74,7 @@ export const getStudentData = async (userId) => {
     const { data, error } = await supabaseClient
       .from('students')
       .select('*')
-      .eq('firebase_uid', userId)  // Query by firebase_uid
+      .eq('supabase_auth_uid', userId)  // Query by supabase_auth_uid
       .single()
     
     console.log('getStudentData: Result', data, error);
@@ -380,7 +380,7 @@ export const createStudent = async (supabaseUid, name, email, phone, referralCod
     const { data, error } = await supabaseClient
       .from('students')
       .upsert({
-        firebase_uid: supabaseUid,  // Only set firebase_uid to the Supabase user ID
+        supabase_auth_uid: supabaseUid,  // Only set supabase_auth_uid to the Supabase user ID
         name: name,
         email: email,
         phone: phone,
@@ -578,15 +578,15 @@ const generateReferralCode = (name) => {
 
 /**
  * Get user's package-specific referral codes
- * @param {string} userId - Supabase user ID (firebase_uid)
+ * @param {string} userId - Supabase user ID (supabase_auth_uid)
  */
 export const getUserReferralCodes = async (userId) => {
   try {
-    // First get the student record by firebase_uid to get the database-generated ID
+    // First get the student record by supabase_auth_uid to get the database-generated ID
     const { data: studentData, error: studentError } = await supabaseClient
       .from('students')
       .select('id')
-      .eq('firebase_uid', userId)
+      .eq('supabase_auth_uid', userId)
       .single()
     
     if (studentError) throw studentError;
@@ -629,11 +629,11 @@ export const getUserReferralCodes = async (userId) => {
 // Function to generate user referral codes for specific packages
 export const generateUserReferralCodes = async (userId, packageId) => {
   try {
-    // First get the student record by firebase_uid to get the database-generated ID
+    // First get the student record by supabase_auth_uid to get the database-generated ID
     const { data: studentData, error: studentError } = await supabaseClient
       .from('students')
       .select('id, referral_code')
-      .eq('firebase_uid', userId)
+      .eq('supabase_auth_uid', userId)
       .single()
     
     if (studentError) throw studentError;

@@ -93,12 +93,12 @@ The schema includes sample packages. You can add more test data by:
 
 ```sql
 -- Add a test student (replace with actual Firebase UID)
-INSERT INTO students (firebase_uid, name, email, referral_code) 
+INSERT INTO students (supabase_auth_uid, name, email, referral_code) 
 VALUES ('test-uid', 'Test User', 'youthpargatii@gmail.com', 'TEST123');
 
 -- Add test purchases
 INSERT INTO purchases (student_id, package_name, amount, commission_earned)
-SELECT id, 'Pargati Starter', 376.00, 37.60 FROM students WHERE firebase_uid = 'test-uid';
+SELECT id, 'Pargati Starter', 376.00, 37.60 FROM students WHERE supabase_auth_uid = 'test-uid';
 ```
 
 ## 12. Production Considerations

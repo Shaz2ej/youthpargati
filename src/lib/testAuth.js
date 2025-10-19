@@ -19,7 +19,7 @@ export const testAuthStatus = async () => {
       const { data, error } = await supabase
         .from('students')
         .select('id')
-        .eq('firebase_uid', user.id)
+        .eq('supabase_auth_uid', user.id)
         .single();
       
       console.log('Test query result:', data, error);

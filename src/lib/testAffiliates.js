@@ -10,7 +10,7 @@ export const testAffiliatesRecord = async (userId) => {
     const { data: studentData, error: studentError } = await supabaseClient
       .from('students')
       .select('id, referral_code')
-      .eq('firebase_uid', userId)
+      .eq('supabase_auth_uid', userId)
       .single();
     
     console.log('Student record:', studentData, studentError);

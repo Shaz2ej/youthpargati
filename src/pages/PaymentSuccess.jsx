@@ -43,7 +43,7 @@ function PaymentSuccess() {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')
-          .eq('firebase_uid', user.id)
+          .eq('supabase_auth_uid', user.id)
           .single()
         
         if (studentError) {

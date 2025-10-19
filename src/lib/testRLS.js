@@ -9,7 +9,7 @@ export const testRLSPolicies = async (userId) => {
     const { data: studentData, error: studentError } = await supabaseClient
       .from('students')
       .select('*')
-      .eq('firebase_uid', userId)
+      .eq('supabase_auth_uid', userId)
       .single();
     
     console.log('Students table test result:', studentData, studentError);

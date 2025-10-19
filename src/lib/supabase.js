@@ -46,7 +46,7 @@ class MockSupabaseClient {
       students: [
         {
           id: 'mock-user-id',
-          firebase_uid: 'mock-firebase-uid',
+          supabase_auth_uid: 'mock-firebase-uid',
           name: 'John Doe',
           email: 'youthpargatii@gmail.com',
           phone: '+1234567890',
