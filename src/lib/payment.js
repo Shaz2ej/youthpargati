@@ -114,30 +114,40 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
           throw new Error('User ID is required to create purchase record')
         }
         
+        // Get the correct student ID from the students table
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')
           .eq('firebase_uid', orderData.user_id)
           .single()
         
-        if (!studentError && studentData) {
-          // Insert purchase record (referral code will be processed by database trigger)
-          const purchaseData = {
-            student_id: studentData.id,
-            package_id: orderData.package_id,
-            amount: orderData.amount,
-            commission: 0, // Will be calculated by database trigger
-            transaction_id: orderId
-          }
-          
-          // If a referral code is provided, store it with the purchase
-          if (referralCode) {
-            purchaseData.referral_code = referralCode;
-          }
-          
-          const { error: purchaseError } = await supabase
-            .from('purchases')
-            .insert(purchaseData)
+        if (studentError) {
+          console.error('Error fetching student data:', studentError)
+          throw new Error('Failed to fetch student data: ' + studentError.message)
+        }
+        
+        if (!studentData) {
+          console.error('Student record not found for user ID:', orderData.user_id)
+          throw new Error('Student record not found. Please contact support.')
+        }
+        
+        // Insert purchase record (referral code will be processed by database trigger)
+        const purchaseData = {
+          student_id: studentData.id,  // Use the actual student ID from the students table
+          package_id: orderData.package_id,
+          amount: orderData.amount,
+          commission: 0, // Will be calculated by database trigger
+          transaction_id: orderId
+        }
+        
+        // If a referral code is provided, store it with the purchase
+        if (referralCode) {
+          purchaseData.referral_code = referralCode;
+        }
+        
+        const { error: purchaseError } = await supabase
+          .from('purchases')
+          .insert(purchaseData)
           
           if (purchaseError) {
             console.error('Error saving purchase record:', purchaseError);
@@ -145,7 +155,7 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
             console.log('Purchase record saved successfully');
           }
         }
-      } catch (dbError) {
+      catch (dbError) {
         console.error('Database error during purchase record creation:', dbError);
       }
       
