@@ -67,17 +67,30 @@ function PaymentSuccess() {
         console.log('Purchase data to insert:', purchaseData);
         
         // Insert purchase record
+        console.log('Attempting to insert purchase record with data:', purchaseData);
         const { data: purchaseResult, error: insertError } = await supabase
           .from('purchases')
           .insert(purchaseData)
           .select()
         
         if (insertError) {
-          console.error('Error inserting purchase record:', insertError)
-          throw new Error('Failed to record purchase: ' + insertError.message)
+          console.error('Error inserting purchase record:', insertError);
+          console.error('Purchase data that failed:', purchaseData);
+          console.error('User ID (supabase_auth_uid):', user.id);
+          
+          // Let's also check if the student actually exists
+          const { data: studentCheck, error: studentCheckError } = await supabase
+            .from('students')
+            .select('id, supabase_auth_uid')
+            .eq('supabase_auth_uid', user.id)
+            .single();
+          
+          console.log('Student check result:', studentCheck, studentCheckError);
+          
+          throw new Error('Failed to record purchase: ' + insertError.message + '. Please contact support.');
         }
         
-        console.log('Purchase record inserted successfully:', purchaseResult)
+        console.log('Purchase record inserted successfully:', purchaseResult);
         
         // Clear session storage after successful processing
         sessionStorage.removeItem('checkoutPackage')

@@ -126,11 +126,14 @@ CREATE POLICY "Students can view own purchases" ON purchases
     );
 
 -- Simplified and reliable RLS policy for Firebase/Supabase auth integration
+DROP POLICY IF EXISTS "Allow students to insert their own purchases" ON purchases;
 CREATE POLICY "Allow students to insert their own purchases" ON purchases
 FOR INSERT WITH CHECK (
     -- Directly check if the student_id being inserted exists in the students table
-    -- AND is linked to ANY authenticated user's UID (the user must be logged in).
-    student_id IN (SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub')
+    -- AND is linked to the CURRENT authenticated user's UID
+    student_id IN (
+        SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
+    )
 );
 
 -- Withdrawals policies
