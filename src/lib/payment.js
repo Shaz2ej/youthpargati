@@ -207,42 +207,101 @@ export const generatePackageReferralCode = (username, packageName) => {
  */
 export const handlePurchaseAndQR = async (currentUser, purchasedPackage, referralCode = null) => {
   try {
-    // Prepare purchase data
-    const purchaseData = {
+    const { data, error } = await supabase.from('purchases').insert([{
       student_id: currentUser.id,
       package_id: purchasedPackage.id,
       amount: purchasedPackage.price,
       commission: 0,
       referral_code: referralCode || null,
       status: 'completed'
-    };
-    
-    console.log('Attempting to insert purchase record:', purchaseData);
-    
-    // Insert purchase record
-    const { data, error } = await supabase.from('purchases').insert([purchaseData]);
-    
+    }]);
+
     if (error) {
-      console.error("Purchase insert failed:", error);
-      throw error;  // agar error hai to QR open nahi hoga
+      console.error('Error inserting purchase record:', error);
+      alert('Failed to record purchase. Please try again.');
+      return; // QR code open nahi hoga
     }
-    
-    console.log('Purchase record inserted successfully:', data);
-    
-    // Success: ab QR code screen dikhao
-    // Note: You'll need to implement the openQRScreen function based on your QR code library
-    if (typeof openQRScreen === 'function') {
-      openQRScreen();
-    } else {
-      console.warn('openQRScreen function not found');
-      // Fallback: you might want to redirect to a payment page or show a success message
-      alert('Purchase successful! QR code would be displayed here.');
-    }
-    
-    return { success: true, data };
+
+    console.log('Purchase inserted successfully:', data);
+    openQRCodeScreen(); // QR code sirf successful insert ke baad
   } catch (err) {
-    console.error("Purchase failed:", err);
-    alert("Payment recorded nahi ho paya. Please contact support.");
-    return { success: false, error: err.message };
+    console.error('Unexpected error:', err);
+    alert('Something went wrong. Please try again.');
   }
 }
+
+/**
+ * Open QR code screen for payment
+ */
+const openQRCodeScreen = () => {
+  // Create a simple modal with a placeholder for the QR code
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
+  modal.innerHTML = `
+    <div style="
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 90%;
+      width: 400px;
+    ">
+      <h3 style="margin-top: 0; color: #333;">Scan QR Code to Pay</h3>
+      <div id="qr-code-placeholder" style="
+        width: 256px;
+        height: 256px;
+        background: #f0f0f0;
+        margin: 20px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px dashed #ccc;
+      ">
+        <p style="color: #666; font-size: 14px;">
+          QR Code would appear here<br>
+          (Integration with payment provider needed)
+        </p>
+      </div>
+      <p style="color: #666; margin-bottom: 20px;">
+        Scan this QR code with your UPI app to complete the payment
+      </p>
+      <button id="close-qr-modal" style="
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      ">
+        Close
+      </button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listener to close button
+  modal.querySelector('#close-qr-modal').addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  // Close modal when clicking outside the content
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+};
