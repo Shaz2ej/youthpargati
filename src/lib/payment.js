@@ -198,3 +198,51 @@ export const generatePackageReferralCode = (username, packageName) => {
   
   return `${userPart}${packagePart}${randomNum}`;
 }
+
+/**
+ * Handle purchase insertion and QR screen opening
+ * @param {Object} currentUser - The current user object
+ * @param {Object} purchasedPackage - The package being purchased
+ * @param {string} referralCode - Optional referral code
+ */
+export const handlePurchaseAndQR = async (currentUser, purchasedPackage, referralCode = null) => {
+  try {
+    // Prepare purchase data
+    const purchaseData = {
+      student_id: currentUser.id,
+      package_id: purchasedPackage.id,
+      amount: purchasedPackage.price,
+      commission: 0,
+      referral_code: referralCode || null,
+      status: 'completed'
+    };
+    
+    console.log('Attempting to insert purchase record:', purchaseData);
+    
+    // Insert purchase record
+    const { data, error } = await supabase.from('purchases').insert([purchaseData]);
+    
+    if (error) {
+      console.error("Purchase insert failed:", error);
+      throw error;  // agar error hai to QR open nahi hoga
+    }
+    
+    console.log('Purchase record inserted successfully:', data);
+    
+    // Success: ab QR code screen dikhao
+    // Note: You'll need to implement the openQRScreen function based on your QR code library
+    if (typeof openQRScreen === 'function') {
+      openQRScreen();
+    } else {
+      console.warn('openQRScreen function not found');
+      // Fallback: you might want to redirect to a payment page or show a success message
+      alert('Purchase successful! QR code would be displayed here.');
+    }
+    
+    return { success: true, data };
+  } catch (err) {
+    console.error("Purchase failed:", err);
+    alert("Payment recorded nahi ho paya. Please contact support.");
+    return { success: false, error: err.message };
+  }
+}
