@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
-import { supabase } from '@/lib/supabase.js'
+import { supabase, createClient } from '@/lib/supabase.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 
 function PaymentSuccess() {
@@ -20,6 +20,14 @@ function PaymentSuccess() {
     
     const processPaymentSuccess = async () => {
       try {
+        // 1. SESSION TOKEN NIKALEIN (NEW CODE)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session || !session.access_token) {
+            throw new Error('User session not found. Please log in again.');
+        }
+        const accessToken = session.access_token;
+        
         console.log('Processing payment success for user:', user);
         
         // Get package data from sessionStorage
@@ -43,7 +51,7 @@ function PaymentSuccess() {
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('id')
-          .eq('supabase_auth_uid', user.id)
+          .eq('supabase_auth_uid', user.id) // Using user.id from AuthContext
           .single()
         
         if (studentError) {
@@ -66,9 +74,22 @@ function PaymentSuccess() {
         
         console.log('Purchase data to insert:', purchaseData);
         
-        // Insert purchase record
+        // 2. AUTHENTICATED CLIENT BANAYEIN (RLS FIX)
+        const supabaseUrl = 'https://pnupcskyrxivtjhwmvax.supabase.co'; // Apka URL
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBjc2t5cnhpdnRqaHdtdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzAxNDIsImV4cCI6MjA3MTk0NjE0Mn0.Q0Qp4CFCXWTSdFqbqR1nouEEF2_jydgPfhXRoygKFx0'; // Actual anon key
+        
+        const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+                headers: {
+                    // 🔥 RLS FIX: Token ko header mein bhejein
+                    Authorization: `Bearer ${accessToken}`, 
+                },
+            },
+        });
+        
+        // 3. AUTHENTICATED INSERT CALL (MODIFIED CODE)
         console.log('Attempting to insert purchase record with data:', purchaseData);
-        const { data: purchaseResult, error: insertError } = await supabase
+        const { data: purchaseResult, error: insertError } = await authenticatedSupabase // <-- client badla!
           .from('purchases')
           .insert(purchaseData)
           .select()
