@@ -114,7 +114,7 @@ export const supabaseClient = USE_MOCK_DATA ? new MockSupabaseClient() : supabas
 export default supabase
 
 // Export the supabase instance directly for consistency
-export { supabase }
+export { supabase, createClient }
 
 // Optional debug logs
 console.log('Supabase URL:', SUPABASE_URL)
