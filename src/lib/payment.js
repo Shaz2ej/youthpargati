@@ -1,5 +1,3 @@
-import { supabase } from '@/lib/supabase.js'
-
 /**
  * PAYMENT INTEGRATION INSTRUCTIONS:
  * 
@@ -207,23 +205,9 @@ export const generatePackageReferralCode = (username, packageName) => {
  */
 export const handlePurchaseAndQR = async (currentUser, purchasedPackage, referralCode = null) => {
   try {
-    const { data, error } = await supabase.from('purchases').insert([{
-      student_id: currentUser.id,
-      package_id: purchasedPackage.id,
-      amount: purchasedPackage.price,
-      commission: 0,
-      referral_code: referralCode || null,
-      status: 'completed'
-    }]);
-
-    if (error) {
-      console.error('Error inserting purchase record:', error);
-      alert('Failed to record purchase. Please try again.');
-      return; // QR code open nahi hoga
-    }
-
-    console.log('Purchase inserted successfully:', data);
-    openQRCodeScreen(); // QR code sirf successful insert ke baad
+    // Note: Purchase record insertion has been removed as part of Supabase removal
+    // This function now only opens the QR code screen
+    openQRCodeScreen(); // QR code will be shown regardless
   } catch (err) {
     console.error('Unexpected error:', err);
     alert('Something went wrong. Please try again.');

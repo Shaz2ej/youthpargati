@@ -22,7 +22,6 @@ import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 import StartJourneyButton from '@/components/StartJourneyButton.jsx'
 import { ensureStudentRecord } from '@/lib/api.js'
-import { supabase } from '@/lib/supabase.js'
 
 function Home() {
   const { user, isLoadingAuth } = useAuth()
@@ -124,32 +123,8 @@ function Home() {
   }
 
   useEffect(() => {
-    const fetchPackages = async () => {
-      try {
-        setError(null)
-        
-        const { data, error: supabaseError } = await supabase
-          .from("packages")
-          .select("id, title, description, price, thumbnail_url")
-
-        if (supabaseError) {
-          console.error('Supabase error:', supabaseError)
-          setError(`Database error: ${supabaseError.message}`)
-          // Keep packages empty to use fallback
-        } else {
-          console.log('Fetched packages:', data)
-          setPackages(data || [])
-        }
-      } catch (err) {
-        console.error('Network error:', err)
-        setError(`Network error: ${err.message}`)
-        // Keep packages empty to use fallback
-      } finally {
-        // Loading complete
-      }
-    }
-
-    fetchPackages()
+    // Use fallback packages since Supabase has been removed
+    setPackages(fallbackPackages);
   }, [])
 
   return (

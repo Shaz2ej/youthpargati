@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input.jsx'
 import { useNavigate } from 'react-router-dom'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { supabase } from '@/lib/supabase.js'
 import { ensureStudentRecord } from '@/lib/api.js'
 import { Home, User, CreditCard } from 'lucide-react'
 

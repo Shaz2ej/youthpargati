@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { ArrowLeft, Play, Clock, BookOpen } from 'lucide-react'
-import { supabase } from '@/lib/supabase.js'
 import EmbedVideoPlayer from '@/components/EmbedVideoPlayer.jsx'
 
 function CourseVideos() {
@@ -22,85 +21,56 @@ function CourseVideos() {
         setLoading(true)
         setError(null)
 
-        // Fetch course information
-        const { data: courseData, error: courseError } = await supabase
-          .from('courses')
-          .select('id, title, description')
-          .eq('id', id)
-          .single()
+        // Use fallback data since Supabase has been removed
+        const courseData = {
+          id: id,
+          title: 'Course Videos',
+          description: 'Learn with our comprehensive video lessons'
+        };
 
-        if (courseError) {
-          console.error('Course fetch error:', courseError)
-          setError(`Failed to load course: ${courseError.message}`)
-          return
-        }
+        setCourseInfo(courseData);
 
-        setCourseInfo(courseData)
+        // Fallback sample videos
+        const videosData = [
+          {
+            id: 'sample-video-1',
+            title: 'YouTube Embed Example',
+            description: 'Sample YouTube video using iframe embed code.',
+            video_embed: '<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>'
+          },
+          {
+            id: 'sample-video-2',
+            title: 'Vimeo Embed Example',
+            description: 'Sample Vimeo video using iframe embed code.',
+            video_embed: '<iframe src="https://player.vimeo.com/video/90509568" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
+          },
+          {
+            id: 'sample-video-3',
+            title: 'Odysee Embed Example',
+            description: 'Sample Odysee video using iframe embed code.',
+            video_embed: '<iframe id="lbry-iframe" src="https://odysee.com/$/embed/@samtime:1/programming-on-windows-is-torture:5" allowfullscreen width="560" height="315"></iframe>'
+          }
+        ];
 
-        // Fetch videos for this course
-        let videosData = [];
-        let videosError = null;
-        
-        try {
-          const { data, error } = await supabase
-            .from('course_videos')
-            .select('id, title, description, video_embed')
-            .eq('course_id', id)
-            .order('id', { ascending: true }); // Order by id
-          
-          videosData = data;
-          videosError = error;
-        } catch (err) {
-          console.log('Course videos table not found, using fallback data');
-          // Fallback sample videos if table doesn't exist (embed codes only)
-          videosData = [
-            {
-              id: 'sample-video-1',
-              title: 'YouTube Embed Example',
-              description: 'Sample YouTube video using iframe embed code.',
-              video_embed: '<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>'
-            },
-            {
-              id: 'sample-video-2',
-              title: 'Vimeo Embed Example',
-              description: 'Sample Vimeo video using iframe embed code.',
-              video_embed: '<iframe src="https://player.vimeo.com/video/90509568" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
-            },
-            {
-              id: 'sample-video-3',
-              title: 'Odysee Embed Example',
-              description: 'Sample Odysee video using iframe embed code.',
-              video_embed: '<iframe id="lbry-iframe" src="https://odysee.com/$/embed/@samtime:1/programming-on-windows-is-torture:5" allowfullscreen width="560" height="315"></iframe>'
-            }
-          ];
-          videosError = null;
-        }
-
-        if (videosError) {
-          console.error('Videos fetch error:', videosError)
-          setError(`Failed to load videos: ${videosError.message}`)
-          return
-        }
-
-        setVideos(videosData || [])
+        setVideos(videosData);
         
         // Set the first video as current if available
         if (videosData && videosData.length > 0) {
-          setCurrentVideo(videosData[0])
+          setCurrentVideo(videosData[0]);
         }
 
       } catch (err) {
-        console.error('Network error:', err)
-        setError(`Network error: ${err.message}`)
+        console.error('Error:', err);
+        setError(`Error loading videos: ${err.message}`);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (id) {
-      fetchCourseAndVideos()
+      fetchCourseAndVideos();
     }
-  }, [id])
+  }, [id]);
 
   const handleVideoSelect = (video) => {
     setCurrentVideo(video)

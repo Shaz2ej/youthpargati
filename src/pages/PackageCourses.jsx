@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { BookOpen, ArrowLeft, Play } from 'lucide-react'
-import { supabase } from '@/lib/supabase.js'
 import { getCoursesByPackageId } from '@/lib/api.js'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
@@ -87,106 +86,61 @@ function PackageCourses() {
   useEffect(() => {
     const fetchPackageAndCourses = async () => {
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
-        // Fetch package information
-        const { data: packageData, error: packageError } = await supabase
-          .from('packages')
-          .select('id, title, description, price, thumbnail_url')
-          .eq('id', id)
-          .single()
+        // Use fallback data since Supabase has been removed
+        const packageData = {
+          id: id,
+          title: 'Course Package',
+          description: 'Explore the courses in this package',
+          price: 0
+        };
 
-        if (packageError) {
-          console.error('Package fetch error:', packageError)
-          setError(`Failed to load package: ${packageError.message}`)
-          return
-        }
+        setPackageInfo(packageData);
 
-        setPackageInfo(packageData)
-
-        // Fetch courses for this package using proper relationship
-        let coursesData = [];
-        let coursesError = null;
-        
-        // Use the helper function that matches admin panel logic
-        const coursesResult = await getCoursesByPackageId(id);
-        
-        if (coursesResult.data && !coursesResult.error) {
-          // Success: got package-specific courses
-          coursesData = coursesResult.data.map(course => ({
-            id: course.id,
-            title: course.title,
-            description: course.description,
-            duration: null, // Will be populated when database has this column
-            thumbnail_url: null, // Will be populated when database has this column
-            created_at: course.created_at
-          }));
-          coursesError = null;
-        } else {
-          // Fallback: try direct courses query
-          console.log('Package-specific courses failed, falling back to all courses:', coursesResult.error);
-          try {
-            const { data, error } = await supabase
-              .from('courses')
-              .select('id, title, description')
-              .limit(6);
-            
-            coursesData = data || [];
-            coursesError = error;
-          } catch (fallbackErr) {
-            console.log('Courses table not found, using sample data');
-            // Final fallback: sample data
-            coursesData = [
-              {
-                id: 'sample-1',
-                title: 'Introduction to Digital Marketing',
-                description: 'Learn the basics of digital marketing and online advertising'
-              },
-              {
-                id: 'sample-2', 
-                title: 'Advanced SEO Techniques',
-                description: 'Master search engine optimization for better website rankings'
-              },
-              {
-                id: 'sample-3',
-                title: 'Social Media Strategy', 
-                description: 'Create effective social media campaigns that drive engagement'
-              }
-            ];
-            coursesError = null;
+        // Use sample course data
+        const coursesData = [
+          {
+            id: 'sample-1',
+            title: 'Introduction to Digital Marketing',
+            description: 'Learn the basics of digital marketing and online advertising'
+          },
+          {
+            id: 'sample-2', 
+            title: 'Advanced SEO Techniques',
+            description: 'Master search engine optimization for better website rankings'
+          },
+          {
+            id: 'sample-3',
+            title: 'Social Media Strategy', 
+            description: 'Create effective social media campaigns that drive engagement'
           }
-        }
+        ];
 
-        if (coursesError) {
-          console.error('Courses fetch error:', coursesError)
-          setError(`Failed to load courses: ${coursesError.message}`)
-          return
-        }
-
-        // Transform the data (simplified since we're getting direct course data)
-        const transformedCourses = coursesData?.map(course => ({
+        // Transform the data
+        const transformedCourses = coursesData.map(course => ({
           id: course.id,
           title: course.title,
           description: course.description,
-          duration: course.duration || null, // Handle missing duration gracefully
-          thumbnail_url: course.thumbnail_url || null // Handle missing thumbnail gracefully
-        })) || []
+          duration: null,
+          thumbnail_url: null
+        }));
 
-        setCourses(transformedCourses)
+        setCourses(transformedCourses);
 
       } catch (err) {
-        console.error('Network error:', err)
-        setError(`Network error: ${err.message}`)
+        console.error('Error:', err);
+        setError(`Error: ${err.message}`);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (id) {
-      fetchPackageAndCourses()
+      fetchPackageAndCourses();
     }
-  }, [id])
+  }, [id]);
 
   if (loading) {
     return (

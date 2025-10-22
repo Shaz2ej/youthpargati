@@ -33,13 +33,8 @@ import {
   getUserReferralCodes,
   generateUserReferralCodes
 } from '@/lib/api.js'
-import { testSupabaseConnection } from '@/lib/testSupabase.js'
 import { testAuthStatus } from '@/lib/testAuth.js'
-import { testRLSPolicies } from '@/lib/testRLS.js'
-import { testAffiliatesRecord } from '@/lib/testAffiliates.js'
 import { WithdrawalsCard } from '@/lib/WithdrawalsCard.jsx'
-// Use the default supabase client for direct queries
-import { supabase } from '@/lib/supabase.js'
 
 function StudentDashboard() {
   const { user, signOut } = useAuth()
@@ -57,52 +52,10 @@ function StudentDashboard() {
   const [availableBalance, setAvailableBalance] = useState(0)
   const [copied, setCopied] = useState(false)
 
-  // Force page reload when redirected from Supabase OAuth flow
-  useEffect(() => {
-    if (window.location.hash.includes('#access_token') || window.location.hash.includes('#error')) {
-      // This ensures the Auth Provider gets time to fully sync the user state.
-      // Adding a small delay to ensure auth context has time to update
-      setTimeout(() => {
-        window.location.replace('/dashboard');
-      }, 1000);
-    }
-  }, []);
 
   // Constants
   const COPIED_TIMEOUT = 2000;
 
-  // Check if user has completed profile
-  const checkUserProfileCompletion = useCallback(async () => {
-    if (!user?.id) return
-    
-    try {
-      // Check if user.id is provided
-      if (!user || !user.id) {
-        console.warn('Skipping profile check: User not fully loaded yet.')
-        return
-      }
-      
-      // Get student data to check if phone number exists
-      const { data, error } = await supabase
-        .from('students')
-        .select('phone')
-        .eq('supabase_auth_uid', user.id)
-        .single()
-      
-      if (error) {
-        console.error('Error checking user profile:', error)
-        return
-      }
-      
-      // If phone number is missing, redirect to complete profile
-      if (!data.phone || data.phone.trim() === '') {
-        navigate('/complete-profile')
-        return
-      }
-    } catch (err) {
-      console.error('Profile completion check error:', err)
-    }
-  }, [user, navigate])
 
   // Load all dashboard data
   const loadDashboardData = useCallback(async () => {
@@ -121,16 +74,6 @@ function StudentDashboard() {
       console.log('StudentDashboard: Testing authentication status...');
       const authTestResult = await testAuthStatus();
       console.log('StudentDashboard: Authentication test result', authTestResult);
-      
-      // Test RLS policies
-      console.log('StudentDashboard: Testing RLS policies...');
-      const rlsTestResult = await testRLSPolicies(user.id);
-      console.log('StudentDashboard: RLS test result', rlsTestResult);
-      
-      // Test affiliates record
-      console.log('StudentDashboard: Testing affiliates record...');
-      const affiliatesTestResult = await testAffiliatesRecord(user.id);
-      console.log('StudentDashboard: Affiliates test result', affiliatesTestResult);
       
       // First, try to get student data
       console.log('StudentDashboard: Getting student data...');
@@ -226,7 +169,6 @@ function StudentDashboard() {
   }, [user, loadDashboardData]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
     navigate('/', { replace: true })
   }
 

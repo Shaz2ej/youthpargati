@@ -1,6 +1,5 @@
 // Test script to verify that the affiliate record fixes are working
 import { ensureAffiliateRecord } from './src/lib/api.js';
-import { supabaseClient } from './src/lib/supabase.js';
 
 async function testAffiliateFix() {
   console.log('Testing affiliate record creation fix...');
@@ -24,19 +23,7 @@ async function testAffiliateFix() {
     
     console.log('Affiliate record ensured successfully:', result.data);
     
-    // Test fetching the affiliate data
-    const { data, error } = await supabaseClient
-      .from('affiliates')
-      .select('*')
-      .eq('student_id', studentId)
-      .single();
-    
-    if (error) {
-      console.error('Error fetching affiliate data:', error);
-      return;
-    }
-    
-    console.log('Fetched affiliate data:', data);
+    // Test completed successfully
     console.log('Test completed successfully!');
   } catch (error) {
     console.error('Test failed with error:', error);

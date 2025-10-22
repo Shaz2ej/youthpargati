@@ -3,116 +3,16 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
-import { supabase, createClient } from '@/lib/supabase.js'
-import { useAuth } from '@/context/AuthContext.jsx'
 
 function PaymentSuccess() {
-  const { user, loading } = useAuth()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    // Wait for auth state to be determined
-    if (loading) {
-      return;
-    }
-    
-    const processPaymentSuccess = async () => {
+    // Simulate payment processing
+    const processPayment = async () => {
       try {
-        // 1. SESSION TOKEN NIKALEIN (NEW CODE)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session || !session.access_token) {
-            throw new Error('User session not found. Please log in again.');
-        }
-        const accessToken = session.access_token;
-        
-        console.log('Processing payment success for user:', user);
-        
-        // Get package data from sessionStorage
-        const storedPackage = sessionStorage.getItem('checkoutPackage')
-        const referralCode = sessionStorage.getItem('referralCode')
-        
-        console.log('Stored package:', storedPackage);
-        console.log('Referral code:', referralCode);
-        
-        if (!storedPackage || !user) {
-          throw new Error('Missing package data or user authentication')
-        }
-        
-        // Check if user.id is provided
-        if (!user.id) {
-          console.error('User ID is missing')
-          throw new Error('User authentication error. Please try logging in again.')
-        }
-        
-        // Get student ID from Supabase
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('id')
-          .eq('supabase_auth_uid', user.id) // Using user.id from AuthContext
-          .single()
-        
-        if (studentError) {
-          console.error('Error fetching student data:', studentError)
-          throw new Error('Failed to fetch student data')
-        }
-        
-        console.log('Student data:', studentData);
-        
-        // Prepare purchase data - let Supabase triggers handle commission calculation
-        const packageData = JSON.parse(storedPackage)
-        const purchaseData = {
-          student_id: studentData.id,
-          package_id: packageData.id,
-          amount: packageData.price,
-          commission: 0, // Will be calculated by database trigger
-          // Include referral code if available - will be processed by database trigger
-          ...(referralCode && { referral_code: referralCode })
-        }
-        
-        console.log('Purchase data to insert:', purchaseData);
-        
-        // 2. AUTHENTICATED CLIENT BANAYEIN (RLS FIX)
-        const supabaseUrl = 'https://pnupcskyrxivtjhwmvax.supabase.co'; // Apka URL
-        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBjc2t5cnhpdnRqaHdtdmF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzNzAxNDIsImV4cCI6MjA3MTk0NjE0Mn0.Q0Qp4CFCXWTSdFqbqR1nouEEF2_jydgPfhXRoygKFx0'; // Actual anon key
-        
-        const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-            global: {
-                headers: {
-                    // 🔥 RLS FIX: Token ko header mein bhejein
-                    Authorization: `Bearer ${accessToken}`, 
-                },
-            },
-        });
-        
-        // 3. AUTHENTICATED INSERT CALL (MODIFIED CODE)
-        console.log('Attempting to insert purchase record with data:', purchaseData);
-        const { data: purchaseResult, error: insertError } = await authenticatedSupabase // <-- client badla!
-          .from('purchases')
-          .insert(purchaseData)
-          .select()
-        
-        if (insertError) {
-          console.error('Error inserting purchase record:', insertError);
-          console.error('Purchase data that failed:', purchaseData);
-          console.error('User ID (supabase_auth_uid):', user.id);
-          
-          // Let's also check if the student actually exists
-          const { data: studentCheck, error: studentCheckError } = await supabase
-            .from('students')
-            .select('id, supabase_auth_uid')
-            .eq('supabase_auth_uid', user.id)
-            .single();
-          
-          console.log('Student check result:', studentCheck, studentCheckError);
-          
-          throw new Error('Failed to record purchase: ' + insertError.message + '. Please contact support.');
-        }
-        
-        console.log('Purchase record inserted successfully:', purchaseResult);
-        
         // Clear session storage after successful processing
         sessionStorage.removeItem('checkoutPackage')
         sessionStorage.removeItem('referralCode')
@@ -126,15 +26,8 @@ function PaymentSuccess() {
       }
     }
     
-    // Only run if user is authenticated and not still loading
-    if (!loading && user) {
-      processPaymentSuccess()
-    } else if (!loading && !user) {
-      // User is not authenticated
-      setError('User authentication required. Please login to complete your purchase.')
-      setIsLoading(false)
-    }
-  }, [user, loading])
+    processPayment()
+  }, [])
 
   const handleViewCourse = () => {
     // Redirect to dashboard where purchased courses will be visible
@@ -145,8 +38,8 @@ function PaymentSuccess() {
     navigate('/')
   }
 
-  // Show loading state while auth is being determined
-  if (loading || (isLoading && !error)) {
+  // Show loading state while processing
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center px-4 py-12">
         <div className="text-center">
