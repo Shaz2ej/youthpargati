@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { ArrowLeft, Play, Clock, BookOpen } from 'lucide-react'
-import EmbedVideoPlayer from '@/components/EmbedVideoPlayer.jsx'
 
 function CourseVideos() {
   const { id } = useParams()
@@ -154,26 +153,10 @@ function CourseVideos() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Debug info commented out for production */}
-                  {/*
-                  <div className="bg-gray-100 p-3 rounded text-xs text-gray-600 mb-4">
-                    <strong>Debug Info:</strong><br/>
-                    Video Embed: {currentVideo.video_embed ? 'PRESENT (iframe)' : 'NULL'}<br/>
-                    Video ID: {currentVideo.id}<br/>
-                    Content Type: {currentVideo.video_embed ? 'Embed Code (iframe)' : 'No Content'}<br/>
-                    Platform: {currentVideo.video_embed ? 
-                      (currentVideo.video_embed.includes('youtube.com') ? 'YouTube' :
-                       currentVideo.video_embed.includes('vimeo.com') ? 'Vimeo' :
-                       currentVideo.video_embed.includes('odysee.com') ? 'Odysee' :
-                       currentVideo.video_embed.includes('dailymotion.com') ? 'Dailymotion' : 'Other')
-                      : 'Unknown'}
-                  </div>
-                  */}
-                  
                   {/* Video Player */}
                   <div className="w-full aspect-video bg-black rounded-lg overflow-hidden relative">
-                    <EmbedVideoPlayer 
-                      embedCode={currentVideo.video_embed}
+                    <div 
+                      dangerouslySetInnerHTML={{ __html: currentVideo.video_embed }}
                       className="w-full h-full"
                     />
                   </div>

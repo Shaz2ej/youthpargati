@@ -21,20 +21,6 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext.jsx'
 import { useNavigate, Link } from 'react-router-dom'
-import {
-  getStudentData,
-  getStudentEarnings,
-  getStudentPurchases,
-  getStudentWithdrawals,
-  getStudentAffiliateData,
-  getAvailableBalance,
-  createStudent,
-  ensureAffiliateRecord,
-  getUserReferralCodes,
-  generateUserReferralCodes
-} from '@/lib/api.js'
-import { testAuthStatus } from '@/lib/testAuth.js'
-import { WithdrawalsCard } from '@/lib/WithdrawalsCard.jsx'
 
 function StudentDashboard() {
   const { user, signOut } = useAuth()
@@ -70,88 +56,31 @@ function StudentDashboard() {
       setLoading(true)
       setError('')
       
-      // Test authentication status
-      console.log('StudentDashboard: Testing authentication status...');
-      const authTestResult = await testAuthStatus();
-      console.log('StudentDashboard: Authentication test result', authTestResult);
-      
-      // First, try to get student data
-      console.log('StudentDashboard: Getting student data...');
-      let studentResult = await getStudentData(user.id)
-      console.log('StudentDashboard: Student data result', studentResult);
-      
-      // If student doesn't exist, create one
-      if (studentResult.error === 'No student record found') {
-        console.log('StudentDashboard: Student record not found, creating new one...')
-        const createResult = await createStudent(
-          user.id, 
-          user.user_metadata?.name || 'Student', 
-          user.email || '', 
-          user.user_metadata?.phone || ''
-        )
-        console.log('StudentDashboard: Create student result', createResult);
-        
-        if (createResult.error) {
-          throw new Error(`Failed to create student record: ${createResult.error}`)
-        }
-        
-        // Try to get student data again
-        console.log('StudentDashboard: Getting student data again after creation...');
-        studentResult = await getStudentData(user.id)
-        console.log('StudentDashboard: Student data result after creation', studentResult);
-        if (studentResult.error) {
-          throw new Error(`Failed to fetch student data after creation: ${studentResult.error}`)
-        }
-      } else if (studentResult.error) {
-        throw new Error(`Failed to fetch student data: ${studentResult.error}`)
-      }
-      
-      // Ensure affiliate record exists
-      console.log('StudentDashboard: Ensuring affiliate record exists...');
-      const affiliateEnsureResult = await ensureAffiliateRecord(studentResult.data.id, studentResult.data.referral_code);
-      console.log('StudentDashboard: Affiliate ensure result', affiliateEnsureResult);
-      
-      if (affiliateEnsureResult.error) {
-        console.error('StudentDashboard: Failed to ensure affiliate record', affiliateEnsureResult.error);
-        // Don't throw error here as it's not critical for dashboard loading
-      }
-
-      // Now fetch all other data
-      console.log('StudentDashboard: Fetching all other data...');
-      const [
-        earningsResult,
-        purchasesResult,
-        withdrawalsResult,
-        affiliateResult,
-        balanceResult,
-        referralCodesResult
-      ] = await Promise.allSettled([
-        getStudentEarnings(user.id),
-        getStudentPurchases(user.id),
-        getStudentWithdrawals(user.id),
-        getStudentAffiliateData(user.id),
-        getAvailableBalance(user.id),
-        getUserReferralCodes(user.id)
-      ])
-      
-      // Helper to process settled promises
-      const processResult = (result, setter, defaultValue) => {
-        if (result.status === 'fulfilled' && !result.value.error) {
-          setter(result.value.data);
-        } else {
-          const errorMessage = result.reason?.message || result.value?.error || 'Failed to fetch data';
-          console.error(`Dashboard data error: ${errorMessage}`);
-          setter(defaultValue); // Set a default value on failure
-        }
+      // Create mock data since we're not using Supabase
+      const mockStudentData = {
+        id: user.id,
+        name: user.user_metadata?.name || 'Student',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || '',
+        referral_code: 'N/A',
+        created_at: new Date().toISOString()
       };
       
-      setStudentData(studentResult.data)
-      processResult(earningsResult, setEarnings, { day1: 0, day10: 0, day30: 0, total: 0 });
-      processResult(purchasesResult, setPurchases, []);
-      processResult(withdrawalsResult, setWithdrawals, []);
-      processResult(affiliateResult, setAffiliateData, { total_leads: 0, total_commission: 0 });
-      processResult(balanceResult, setAvailableBalance, 0);
-      processResult(referralCodesResult, setUserReferralCodes, []);
+      const mockEarnings = { day1: 0, day10: 0, day30: 0, total: 0 };
+      const mockPurchases = [];
+      const mockWithdrawals = [];
+      const mockAffiliateData = { total_leads: 0, total_commission: 0 };
+      const mockBalance = 0;
+      const mockReferralCodes = [];
+      
+      // Set all the mock data
+      setStudentData(mockStudentData);
+      setEarnings(mockEarnings);
+      setPurchases(mockPurchases);
+      setWithdrawals(mockWithdrawals);
+      setAffiliateData(mockAffiliateData);
+      setAvailableBalance(mockBalance);
+      setUserReferralCodes(mockReferralCodes);
     } catch (err) {
       console.error('Dashboard load error:', err)
       setError(err.message)
@@ -352,116 +281,142 @@ function StudentDashboard() {
           </div>
         </section>
 
-        {/* Purchases History */}
+        {/* Referral Program Section */}
         <section className="mb-12">
-          <h2 className="text-2xl md:text-3xl font-black text-blue-600 mb-6 text-center">Purchase History</h2>
-          <Card className="border-2 border-blue-200">
-            <CardHeader>
-              <CardTitle>Your Course Purchases</CardTitle>
-              <CardDescription>All your course purchases</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+          <h2 className="text-2xl md:text-3xl font-black text-blue-600 mb-6 text-center">Referral Program</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border-2 border-green-200">
+              <CardHeader>
+                <CardTitle className="text-green-600">Your Referral Code</CardTitle>
+                <CardDescription>Share this code to earn commissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 mb-4">
+                  <Input 
+                    value={studentData?.referral_code || 'N/A'} 
+                    readOnly 
+                    className="flex-1"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => copyReferralLink(`${window.location.origin}?ref=${studentData?.referral_code}`)}
+                  >
+                    {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-600">
+                  Share your referral link with friends to earn commissions on their purchases.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-blue-600">Referral Earnings</CardTitle>
+                <CardDescription>Your affiliate performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span>Total Commission Earned:</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(affiliateData?.total_commission || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Total Referrals:</span>
+                    <span className="font-bold text-green-600">{affiliateData?.total_leads || 0}</span>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-gray-600">
+                      You earn a commission for every successful referral. Keep sharing!
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Recent Activity Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl md:text-3xl font-black text-blue-600 mb-6 text-center">Recent Activity</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Purchases */}
+            <Card className="border-2 border-orange-200">
+              <CardHeader>
+                <CardTitle className="text-orange-600">Recent Purchases</CardTitle>
+                <CardDescription>Your course purchases</CardDescription>
+              </CardHeader>
+              <CardContent>
                 {purchases.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No purchases yet</p>
+                  <p className="text-gray-600 text-center py-4">No purchases yet</p>
                 ) : (
-                  purchases.map((purchase) => (
-                    <div key={purchase.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                      <div>
-                        <h3 className="font-semibold">{purchase.package_name}</h3>
-                        <p className="text-sm text-gray-600">{formatDate(purchase.purchase_date)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">{formatCurrency(purchase.amount)}</p>
-                        {getStatusBadge(purchase.status)}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Withdrawals */}
-        <section className="mb-12">
-          <WithdrawalsCard
-            userId={user.id}
-            availableBalance={availableBalance}
-            withdrawals={withdrawals}
-            onSuccessfulWithdrawal={loadDashboardData}
-            formatCurrency={formatCurrency}
-            formatDate={formatDate}
-            getStatusBadge={getStatusBadge}
-            studentData={studentData}
-          />
-        </section>
-
-        {/* Affiliate / Leads Section */}
-        <section>
-          <h2 className="text-2xl md:text-3xl font-black text-blue-600 mb-6 text-center">Affiliate Program</h2>
-          <Card className="border-2 border-purple-200">
-            <CardHeader>
-              <CardTitle>Your Referral Program</CardTitle>
-              <CardDescription>Earn commissions by referring new students</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-6 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg">
-                  <LinkIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <p className="text-2xl font-black text-purple-600">{affiliateData?.total_leads || 0}</p>
-                  <p className="text-gray-600">Total Leads</p>
-                </div>
-                
-                <div className="text-center p-6 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
-                  <DollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-2xl font-black text-green-600">{formatCurrency(affiliateData?.total_commission || 0)}</p>
-                  <p className="text-gray-600">Total Referral Earnings</p>
-                </div>
-                
-                <div className="text-center p-6 bg-gradient-to-r from-orange-100 to-red-100 rounded-lg">
-                  <Users className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                  <p className="text-2xl font-black text-orange-600">{affiliateData?.referral_code || 'N/A'}</p>
-                  <p className="text-gray-600">Your Code</p>
-                </div>
-              </div>
-
-              {/* Referral Links */}
-              {userReferralCodes.length > 0 && (
-                <div className="mt-8">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">Your Referral Links</h3>
-                  <div className="space-y-4">
-                    {userReferralCodes.map((code) => (
-                      <div key={code.referral_code} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-semibold">{code.packages?.title || 'Course Package'}</p>
-                          <p className="text-sm text-gray-600 break-all">{code.referral_link}</p>
+                  <div className="space-y-3">
+                    {purchases.slice(0, 3).map((purchase) => (
+                      <div key={purchase.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold">{purchase.package_title}</p>
+                            <p className="text-sm text-gray-600">{formatDate(purchase.created_at)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-orange-600">{formatCurrency(purchase.amount)}</p>
+                            {getStatusBadge(purchase.status)}
+                          </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyReferralLink(code.referral_link)}
-                          className="flex items-center gap-2"
-                        >
-                          {copied ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-4 w-4" />
-                              Copy
-                            </>
-                          )}
-                        </Button>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+            
+            {/* Withdrawals */}
+            <Card className="border-2 border-purple-200">
+              <CardHeader>
+                <CardTitle className="text-purple-600">Withdrawal History</CardTitle>
+                <CardDescription>Your withdrawal requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {withdrawals.length === 0 ? (
+                  <p className="text-gray-600 text-center py-4">No withdrawals yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {withdrawals.slice(0, 3).map((withdrawal) => (
+                      <div key={withdrawal.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold">{formatCurrency(withdrawal.amount)}</p>
+                            <p className="text-sm text-gray-600">{formatDate(withdrawal.created_at)}</p>
+                          </div>
+                          {getStatusBadge(withdrawal.status)}
+                        </div>
+                        {withdrawal.admin_notes && (
+                          <p className="text-xs text-gray-500 mt-1">Note: {withdrawal.admin_notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="text-center">
+          <h2 className="text-2xl md:text-3xl font-black text-blue-600 mb-6">Quick Actions</h2>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Link to="/">
+                <Home className="h-4 w-4 mr-2" />
+                Back to Home
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
         </section>
       </div>
     </div>

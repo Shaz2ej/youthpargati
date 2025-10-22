@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input.jsx'
 import { useNavigate } from 'react-router-dom'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { ensureStudentRecord } from '@/lib/api.js'
 import { Home, User, CreditCard } from 'lucide-react'
 
 function Checkout() {
@@ -80,20 +79,14 @@ function Checkout() {
     setError('')
     
     try {
-      console.log('Checkout: Ensuring student record exists for user', user.id);
+      console.log('Checkout: Processing payment for user', user.id);
       
-      // Ensure student record exists
-      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
-      console.log('Checkout: Ensure student record result', studentResult);
+      // Create mock student data since we're not using Supabase
+      const studentData = {
+        name: user.user_metadata?.name || 'Student',
+        phone: user.user_metadata?.phone || ''
+      };
       
-      if (studentResult.error) {
-        console.error('Failed to ensure student record:', studentResult.error);
-        setError('Failed to prepare user profile for purchase. Please try again.');
-        setProcessing(false)
-        return;
-      }
-      
-      const studentData = studentResult.data;
       console.log('User data retrieved:', studentData);
       
       // Process payment with referral code if provided

@@ -4,10 +4,8 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { BookOpen, ArrowLeft, Play } from 'lucide-react'
-import { getCoursesByPackageId } from '@/lib/api.js'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { ensureStudentRecord } from '@/lib/api.js'
 
 function PackageCourses() {
   const { id } = useParams()
@@ -54,20 +52,13 @@ function PackageCourses() {
     setProcessing(true)
     
     try {
-      console.log('PackageCourses: Ensuring student record exists for user', user.id);
+      console.log('PackageCourses: Processing payment for user', user.id);
       
-      // Ensure student record exists
-      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
-      console.log('PackageCourses: Ensure student record result', studentResult);
-      
-      if (studentResult.error) {
-        console.error('Failed to ensure student record:', studentResult.error);
-        alert('Failed to prepare user profile for purchase. Please try again.');
-        setProcessing(false)
-        return;
-      }
-      
-      const studentData = studentResult.data;
+      // Create mock student data since we're not using Supabase
+      const studentData = {
+        name: user.user_metadata?.name || 'Student',
+        phone: user.user_metadata?.phone || ''
+      };
       
       // Process payment with referral code if provided
       await handlePackagePayment(packageInfo, {

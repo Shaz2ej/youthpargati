@@ -21,7 +21,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 import StartJourneyButton from '@/components/StartJourneyButton.jsx'
-import { ensureStudentRecord } from '@/lib/api.js'
 
 function Home() {
   const { user, isLoadingAuth } = useAuth()
@@ -92,19 +91,7 @@ function Home() {
     setProcessing(prev => ({ ...prev, [pkg.id]: true }))
     
     try {
-      console.log('handleBuyNow: Ensuring student record exists for user', user.id);
-      
-      // Ensure student record exists
-      const studentResult = await ensureStudentRecord(user.id, user.user_metadata);
-      console.log('handleBuyNow: Ensure student record result', studentResult);
-      
-      if (studentResult.error) {
-        console.error('Failed to ensure student record:', studentResult.error);
-        alert('Failed to prepare user profile for purchase. Please try again.');
-        return;
-      }
-      
-      const studentData = studentResult.data;
+      console.log('handleBuyNow: Navigating to checkout for user', user.id);
       
       // Navigate to checkout page with package and referral code data
       // Store package and referral code in session storage for the checkout page
