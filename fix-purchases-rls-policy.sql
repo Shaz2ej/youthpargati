@@ -22,3 +22,12 @@ CREATE POLICY "Students can view own purchases" ON purchases
             SELECT id FROM students WHERE supabase_auth_uid = auth.jwt() ->> 'sub'
         )
     );
+
+-- Additional policy using auth.uid() for alternative approach
+-- This policy can be used instead of the above if preferred
+-- DROP POLICY IF EXISTS "Allow self insert on purchases" ON purchases;
+-- CREATE POLICY "Allow self insert on purchases"
+-- ON purchases
+-- FOR INSERT
+-- TO authenticated
+-- WITH CHECK ((auth.uid()::uuid = student_id));
