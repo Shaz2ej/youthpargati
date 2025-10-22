@@ -158,7 +158,7 @@ function StudentDashboard() {
     } finally {
       setLoading(false)
     }
-  }, [user, checkUserProfileCompletion])
+  }, [user])
 
   // Ensure student record exists when dashboard loads
   useEffect(() => {
