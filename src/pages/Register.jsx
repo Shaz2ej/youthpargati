@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,14 +33,20 @@ const Register = () => {
     }
 
     try {
-      // Firestore me data store karna
-      await setDoc(doc(db, "students", formData.email), {
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        state: formData.state,
-        createdAt: serverTimestamp(),
-      });
+      const user = auth.currentUser;
+
+      if (user) {
+        await setDoc(doc(db, "students", user.uid), {
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+          state: formData.state,
+          uid: user.uid,
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        console.error("User not authenticated");
+      }
 
       alert("✅ Registration successful!");
       setFormData({ name: "", email: "", mobile: "", state: "" });
