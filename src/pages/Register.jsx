@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { db, auth } from "../lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +12,11 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     mobile: "",
     state: "",
   });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -27,34 +30,37 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.mobile || !formData.state) {
+    if (!formData.name || !formData.email || !formData.password || !formData.mobile || !formData.state) {
       alert("Please fill in all fields.");
       return;
     }
 
-    try {
-      const user = auth.currentUser;
+    setLoading(true);
 
-      if (user) {
-        await setDoc(doc(db, "students", user.uid), {
-          name: formData.name,
-          email: formData.email,
-          mobile: formData.mobile,
-          state: formData.state,
-          uid: user.uid,
-          createdAt: serverTimestamp(),
-        });
-      } else {
-        console.error("User not authenticated");
-      }
+    try {
+      // Create user with email and password
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Save user data to Firestore using the real Firebase Auth UID
+      await setDoc(doc(db, "students", user.uid), {
+        uid: user.uid,
+        name: formData.name,
+        email: user.email,
+        mobile: formData.mobile,
+        state: formData.state,
+        createdAt: serverTimestamp(),
+      });
 
       alert("✅ Registration successful!");
-      setFormData({ name: "", email: "", mobile: "", state: "" });
+      setFormData({ name: "", email: "", password: "", mobile: "", state: "" });
       // Redirect to dashboard after successful registration
       navigate("/dashboard");
     } catch (error) {
-      console.error("Error saving user:", error);
-      alert("❌ Error saving user. Check console.");
+      console.error("Error during registration:", error);
+      alert(`❌ Registration failed: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,6 +104,16 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
                 type="text"
                 name="mobile"
                 placeholder="Mobile Number"
@@ -120,8 +136,9 @@ const Register = () => {
               type="submit"
               className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-6"
               size="lg"
+              disabled={loading}
             >
-              Register
+              {loading ? "Registering..." : "Register"}
             </Button>
           </form>
           
