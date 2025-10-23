@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const AuthContext = createContext();
 
@@ -10,25 +12,29 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock authentication state
   useEffect(() => {
-    // Simulate checking for existing session
-    const checkUser = async () => {
-      // In a real app, this would check for a valid session
-      // For now, we'll just set loading to false
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setLoading(false);
-    };
+    });
 
-    checkUser();
+    return unsubscribe;
   }, []);
+
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  };
 
   const value = {
     user,
     loading,
     isLoadingAuth: loading,
-    signOut: () => {
-      setUser(null);
-    }
+    signOut
   };
 
   return (
