@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
 
 export default function StudentDashboard() {
   const [userData, setUserData] = useState(null);
@@ -50,41 +53,69 @@ export default function StudentDashboard() {
   if (loading) return <p>Loading dashboard...</p>;
 
   return (
-    <div className="p-6 text-center">
-      <h1 className="text-2xl font-bold mb-4">
-        Welcome, {userData?.name || "Student"} 👋
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl md:text-4xl font-black text-center mb-8 text-blue-600">
+          Welcome, {userData?.name || "Student"} 👋
+        </h1>
 
-      {(!userData?.mobile_number || !userData?.state) ? (
-        <div className="space-y-4">
-          <p className="text-gray-600">Please complete your profile:</p>
-          <input
-            type="text"
-            placeholder="Mobile Number"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            className="border p-2 rounded w-full max-w-sm"
-          />
-          <input
-            type="text"
-            placeholder="State"
-            value={state}
-            onChange={(e) => setState(e.target.value)}
-            className="border p-2 rounded w-full max-w-sm"
-          />
-          <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Save
-          </button>
-        </div>
-      ) : (
-        <div>
-          <p><strong>Mobile:</strong> {userData.mobile_number}</p>
-          <p><strong>State:</strong> {userData.state}</p>
-        </div>
-      )}
+        {(!userData?.mobile_number || !userData?.state) ? (
+          <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-black text-blue-600">Complete Your Profile</CardTitle>
+              <CardDescription className="text-gray-600">
+                Please fill in your details to continue
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Mobile Number"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="State"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <Button
+                onClick={handleSave}
+                className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-6"
+                size="lg"
+              >
+                Save Profile
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-black text-blue-600">Your Profile</CardTitle>
+              <CardDescription className="text-gray-600">
+                Your profile information
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-medium text-gray-600">Mobile:</span>
+                <span className="font-semibold">{userData.mobile_number}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-medium text-gray-600">State:</span>
+                <span className="font-semibold">{userData.state}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
