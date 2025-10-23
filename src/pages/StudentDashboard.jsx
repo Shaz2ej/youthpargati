@@ -1,41 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Badge } from '@/components/ui/badge.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Label } from '@/components/ui/label.jsx'
-import { 
-  DollarSign, 
-  TrendingUp, 
-  Calendar, 
-  Wallet, 
-  Users, 
-  Link as LinkIcon,
-  Copy,
-  CheckCircle,
-  Clock,
-  XCircle,
-  ArrowUpRight,
-  RefreshCw,
-  Home
-} from 'lucide-react'
-import { useAuth } from '@/context/AuthContext.jsx'
-import { useNavigate, Link } from 'react-router-dom'
-
 import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { useNavigate } from 'react-router-dom';
 
 export default function StudentDashboard() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mobile, setMobile] = useState("");
   const [state, setState] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) {
+        // If no user, redirect to login
+        navigate('/login');
+        return;
+      }
 
       const docRef = doc(db, "students", user.uid);
       const docSnap = await getDoc(docRef);
@@ -49,7 +31,7 @@ export default function StudentDashboard() {
       setLoading(false);
     };
     fetchUser();
-  }, []);
+  }, [navigate]);
 
   const handleSave = async () => {
     const user = auth.currentUser;
