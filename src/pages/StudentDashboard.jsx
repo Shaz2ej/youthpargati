@@ -11,6 +11,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [mobile, setMobile] = useState("");
   const [state, setState] = useState("");
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +31,11 @@ export default function StudentDashboard() {
         setUserData(data);
         setMobile(data.mobile_number || "");
         setState(data.state || "");
+        
+        // Check if profile is already completed
+        if (data.mobile_number && data.state) {
+          setProfileCompleted(true);
+        }
       }
       setLoading(false);
     };
@@ -46,7 +52,15 @@ export default function StudentDashboard() {
       state: state,
     });
 
-    setUserData({ ...userData, mobile_number: mobile, state: state });
+    // Update local state
+    const updatedUserData = { ...userData, mobile_number: mobile, state: state };
+    setUserData(updatedUserData);
+    
+    // Check if both fields are now present and set profileCompleted to true
+    if (mobile && state) {
+      setProfileCompleted(true);
+    }
+    
     alert("Profile updated successfully!");
   };
 
@@ -59,7 +73,7 @@ export default function StudentDashboard() {
           Welcome, {userData?.name || "Student"} 👋
         </h1>
 
-        {(!userData?.mobile_number || !userData?.state) ? (
+        {(!profileCompleted) ? (
           <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-black text-blue-600">Complete Your Profile</CardTitle>
@@ -98,19 +112,30 @@ export default function StudentDashboard() {
         ) : (
           <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-black text-blue-600">Your Profile</CardTitle>
+              <CardTitle className="text-2xl font-black text-blue-600">Dashboard</CardTitle>
               <CardDescription className="text-gray-600">
-                Your profile information
+                Your profile is complete. Welcome to your dashboard!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-medium text-gray-600">Name:</span>
+                <span className="font-semibold">{userData?.name || "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
+                <span className="font-medium text-gray-600">Email:</span>
+                <span className="font-semibold">{userData?.email || "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium text-gray-600">Mobile:</span>
-                <span className="font-semibold">{userData.mobile_number}</span>
+                <span className="font-semibold">{userData?.mobile_number || "N/A"}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b">
                 <span className="font-medium text-gray-600">State:</span>
-                <span className="font-semibold">{userData.state}</span>
+                <span className="font-semibold">{userData?.state || "N/A"}</span>
+              </div>
+              <div className="pt-4 text-center text-sm text-gray-500">
+                <p>You'll earn commission based on your current package level, regardless of which package the referred person buys.</p>
               </div>
             </CardContent>
           </Card>
