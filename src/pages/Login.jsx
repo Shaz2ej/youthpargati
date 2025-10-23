@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -12,9 +12,12 @@ const provider = new GoogleAuthProvider();
 const Login = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
+      console.log("User logged in, checking Firestore record...");
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
@@ -23,9 +26,18 @@ const Login = () => {
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        console.log("Welcome back:", userSnap.data().name);
+        console.log("Student data loaded successfully.");
+        console.log("Welcome back:", userSnap.data());
       } else {
-        console.log("No user data found — maybe not registered yet!");
+        console.log("No record found, creating new student document.");
+        // Create new student document with user info
+        await setDoc(doc(db, "students", user.uid), {
+          name: user.displayName,
+          email: user.email,
+          uid: user.uid,
+          createdAt: serverTimestamp(),
+        });
+        console.log("New student document created successfully.");
       }
 
       // Redirect to dashboard after successful login
@@ -33,6 +45,8 @@ const Login = () => {
     } catch (error) {
       console.error("Login error:", error);
       alert("Failed to sign in with Google. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,8 +71,9 @@ const Login = () => {
             onClick={handleLogin}
             className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-6"
             size="lg"
+            disabled={loading}
           >
-            Sign in with Google
+            {loading ? "Fetching your data..." : "Sign in with Google"}
           </Button>
           
           <div className="text-center text-sm text-gray-500">
@@ -66,6 +81,7 @@ const Login = () => {
             <button 
               onClick={() => navigate("/register")}
               className="text-blue-600 hover:underline font-medium"
+              disabled={loading}
             >
               Register now
             </button>
