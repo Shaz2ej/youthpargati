@@ -1,24 +1,37 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { signInWithGoogle } from "../lib/firebase";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+
+const provider = new GoogleAuthProvider();
 
 const Login = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const handleGoogleLogin = async () => {
+  const handleLogin = async () => {
     try {
-      const user = await signInWithGoogle();
-      if (user) {
-        console.log("User logged in:", user);
-        // Redirect to dashboard after successful login
-        navigate("/dashboard");
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user data exists in Firestore
+      const userRef = doc(db, "students", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        console.log("Welcome back:", userSnap.data().name);
+      } else {
+        console.log("No user data found — maybe not registered yet!");
       }
+
+      // Redirect to dashboard after successful login
+      navigate("/dashboard");
     } catch (error) {
-      console.error("Google Sign-in Error:", error);
+      console.error("Login error:", error);
       alert("Failed to sign in with Google. Please try again.");
     }
   };
@@ -41,7 +54,7 @@ const Login = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <Button
-            onClick={handleGoogleLogin}
+            onClick={handleLogin}
             className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold text-lg py-6"
             size="lg"
           >
