@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { db } from "../lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +39,7 @@ const Register = () => {
         email: formData.email,
         mobile: formData.mobile,
         state: formData.state,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
 
       alert("✅ Registration successful!");
