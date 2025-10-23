@@ -47,7 +47,7 @@ const StartJourneyButton = () => {
       className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xl px-12 py-6 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300"
       asChild
     >
-      <Link to="/register">
+      <Link to="/login">
         <Play className="mr-2 h-6 w-6" />
         Start Your Journey
       </Link>
