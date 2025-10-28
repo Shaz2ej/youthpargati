@@ -58,14 +58,15 @@ function Checkout() {
       return
     }
     
-    if (!user.id) {
+    // Fix: Use user.uid instead of user.id for Firebase user objects
+    if (!user.uid) {
       console.warn('Purchase attempt blocked: User ID not available');
       console.log('Checkout: User ID check failed. User:', user);
       setError('Please log in to purchase courses.')
       return
     }
     
-    console.log('Checkout: User authenticated', user.id);
+    console.log('Checkout: User authenticated', user.uid);
     
     // Small delay to ensure auth state is fully loaded
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -79,7 +80,7 @@ function Checkout() {
     setError('')
     
     try {
-      console.log('Checkout: Processing payment for user', user.id);
+      console.log('Checkout: Processing payment for user', user.uid);
       
       // Create mock student data since we're not using Supabase
       const studentData = {
@@ -91,7 +92,7 @@ function Checkout() {
       
       // Process payment with referral code if provided
       const result = await handlePackagePayment(packageData, {  // Fixed: was packageInfo
-        uid: user.id,  // Use user.id (Supabase user ID) for the payment
+        uid: user.uid,  // Fix: Use user.uid instead of user.id
         name: studentData.name,
         phone: studentData.phone
       }, referralCode)
