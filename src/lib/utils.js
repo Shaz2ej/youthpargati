@@ -1,5 +1,11 @@
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
 
 /**
  * Fetch all packages from Firestore
