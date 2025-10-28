@@ -79,14 +79,17 @@ function Home() {
       return;
     }
     
-    // Robust check at the very beginning of the handler
+    // If user is not logged in, redirect to login page
     if (!user) {
-      console.warn('Purchase attempt blocked: No user object');
-      console.log('handleBuyNow: User check failed. User:', user);
-      alert('Please log in to purchase courses.')
-      return
+      console.log('User not logged in, redirecting to login page');
+      // Store the package they wanted to buy in session storage
+      sessionStorage.setItem('checkoutPackage', JSON.stringify(pkg));
+      // Redirect to login page
+      navigate('/login');
+      return;
     }
     
+    // If user is logged in, proceed with purchase
     // Fix: Use user.uid instead of user.id for Firebase user objects
     if (!user.uid) {
       console.warn('Purchase attempt blocked: User ID not available');

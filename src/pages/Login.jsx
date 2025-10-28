@@ -39,8 +39,16 @@ const Login = () => {
       });
       console.log("Student document created successfully.");
 
-      // Redirect to dashboard after successful login
-      navigate("/dashboard");
+      // Check if user was trying to purchase a package
+      const storedPackage = sessionStorage.getItem('checkoutPackage');
+      if (storedPackage) {
+        // If so, redirect to checkout instead of dashboard
+        console.log('User had a package in cart, redirecting to checkout');
+        navigate("/checkout");
+      } else {
+        // Redirect to dashboard after successful login
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Google login error:", error);
       alert(`Failed to sign in with Google: ${error.message}`);
@@ -49,10 +57,19 @@ const Login = () => {
     }
   };
 
-  // If user is already logged in, redirect to dashboard
+  // If user is already logged in, redirect appropriately
   React.useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      // Check if user was trying to purchase a package
+      const storedPackage = sessionStorage.getItem('checkoutPackage');
+      if (storedPackage) {
+        // If so, redirect to checkout instead of dashboard
+        console.log('User is already logged in and had a package in cart, redirecting to checkout');
+        navigate("/checkout");
+      } else {
+        // Redirect to dashboard
+        navigate("/dashboard");
+      }
     }
   }, [user, navigate]);
 

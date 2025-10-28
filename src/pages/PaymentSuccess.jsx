@@ -3,16 +3,54 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 
 function PaymentSuccess() {
+  const { user } = useAuth();
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Function to create purchase record in Firestore
+  const createPurchaseRecord = async (packageData, user) => {
+    if (!user || !user.uid) throw new Error("User not authenticated");
+    
+    const purchaseData = {
+      amount: packageData.price,
+      package_id: packageData.id,
+      payment_status: "success",
+      purchase_date: serverTimestamp(),
+      student_uid: user.uid  // Using student_uid as requested
+    };
+    
+    console.log('Creating purchase record:', purchaseData);
+    
+    const docRef = await addDoc(collection(db, "purchases"), purchaseData);
+    console.log('Purchase record created with ID:', docRef.id);
+    
+    return docRef.id;
+  };
+
   useEffect(() => {
-    // Simulate payment processing
+    // Process payment and create purchase record
     const processPayment = async () => {
       try {
+        // Get package data from session storage
+        const storedPackage = sessionStorage.getItem('checkoutPackage');
+        console.log('Stored package for purchase record:', storedPackage);
+        
+        if (storedPackage) {
+          const packageData = JSON.parse(storedPackage);
+          
+          // Create purchase record in Firestore
+          await createPurchaseRecord(packageData, user);
+          console.log('Purchase record created successfully');
+        } else {
+          console.warn('No package data found in session storage for purchase record');
+        }
+        
         // Clear session storage after successful processing
         sessionStorage.removeItem('checkoutPackage')
         sessionStorage.removeItem('referralCode')
@@ -27,7 +65,7 @@ function PaymentSuccess() {
     }
     
     processPayment()
-  }, [])
+  }, [user])
 
   const handleViewCourse = () => {
     // Redirect to dashboard where purchased courses will be visible

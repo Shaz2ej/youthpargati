@@ -68,9 +68,6 @@ function Checkout() {
     
     console.log('Checkout: User authenticated', user.uid);
     
-    // Small delay to ensure auth state is fully loaded
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
     if (!packageData) {
       setError('Package data not found')
       return
@@ -91,6 +88,7 @@ function Checkout() {
       console.log('User data retrieved:', studentData);
       
       // Process payment with referral code if provided
+      // Remove the delay to make payment open immediately
       const result = await handlePackagePayment(packageData, {  // Fixed: was packageInfo
         uid: user.uid,  // Fix: Use user.uid instead of user.id
         name: studentData.name,
