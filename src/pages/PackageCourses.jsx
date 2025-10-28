@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { BookOpen, ArrowLeft, Play } from 'lucide-react'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
+import { fetchPackageById, fetchCoursesByPackageId } from '@/lib/utils.js'
 
 function PackageCourses() {
   const { id } = useParams()
@@ -80,45 +81,16 @@ function PackageCourses() {
         setLoading(true);
         setError(null);
 
-        // Use fallback data since Supabase has been removed
-        const packageData = {
-          id: id,
-          title: 'Course Package',
-          description: 'Explore the courses in this package',
-          price: 0
-        };
-
+        // Fetch package from Firestore
+        const packageData = await fetchPackageById(id);
+        if (!packageData) {
+          throw new Error('Package not found');
+        }
         setPackageInfo(packageData);
 
-        // Use sample course data
-        const coursesData = [
-          {
-            id: 'sample-1',
-            title: 'Introduction to Digital Marketing',
-            description: 'Learn the basics of digital marketing and online advertising'
-          },
-          {
-            id: 'sample-2', 
-            title: 'Advanced SEO Techniques',
-            description: 'Master search engine optimization for better website rankings'
-          },
-          {
-            id: 'sample-3',
-            title: 'Social Media Strategy', 
-            description: 'Create effective social media campaigns that drive engagement'
-          }
-        ];
-
-        // Transform the data
-        const transformedCourses = coursesData.map(course => ({
-          id: course.id,
-          title: course.title,
-          description: course.description,
-          duration: null,
-          thumbnail_url: null
-        }));
-
-        setCourses(transformedCourses);
+        // Fetch courses for this package from Firestore
+        const coursesData = await fetchCoursesByPackageId(id);
+        setCourses(coursesData);
 
       } catch (err) {
         console.error('Error:', err);

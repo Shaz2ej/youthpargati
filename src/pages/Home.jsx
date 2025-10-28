@@ -21,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
 import StartJourneyButton from '@/components/StartJourneyButton.jsx'
+import { fetchPackages } from '@/lib/utils.js'
 
 function Home() {
   const { user, isLoadingAuth } = useAuth()
@@ -33,21 +34,21 @@ function Home() {
   // Fallback data to ensure UI never breaks
   const fallbackPackages = [
     {
-      id: 'fallback-1',
-      title: 'Pargati Starter',
-      description: 'Perfect for beginners entering the digital world',
+      id: 'basic',
+      title: 'Pargati Basic',
+      description: 'Essential skills for beginners',
       price: 376,
       thumbnail_url: null
     },
     {
-      id: 'fallback-2', 
+      id: 'elite', 
       title: 'Pargati Elite',
       description: 'Advanced skills for serious learners',
       price: 532,
       thumbnail_url: null
     },
     {
-      id: 'fallback-3',
+      id: 'warriors',
       title: 'Pargati Warriors', 
       description: 'Elite training for digital champions',
       price: 1032,
@@ -110,8 +111,19 @@ function Home() {
   }
 
   useEffect(() => {
-    // Use fallback packages since Supabase has been removed
-    setPackages(fallbackPackages);
+    const loadPackages = async () => {
+      try {
+        const packagesData = await fetchPackages();
+        setPackages(packagesData);
+      } catch (err) {
+        console.error('Error loading packages from Firestore:', err);
+        setError('Failed to load packages. Showing fallback data.');
+        // Use fallback packages if Firestore fails
+        setPackages(fallbackPackages);
+      }
+    };
+
+    loadPackages();
   }, [])
 
   return (
