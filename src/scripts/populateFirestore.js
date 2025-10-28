@@ -4,22 +4,30 @@ import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
 // Package data
 const packages = [
   {
+    id: 'seed',
+    name: 'Seed Package',
+    title: 'Pargati Seed',
+    description: 'Get started with essential digital skills',
+    price: 199,
+    thumbnail_url: 'https://i.ibb.co/hxF0cSCz/seed-package.jpg' // Added the thumbnail URL
+  },
+  {
     id: 'basic',
-    name: 'Basic Package', // Adding the name field as requested
+    name: 'Basic Package',
     title: 'Pargati Basic',
     description: 'Essential skills for beginners',
     price: 376
   },
   {
     id: 'elite', 
-    name: 'Elite Package', // Adding the name field as requested
+    name: 'Elite Package',
     title: 'Pargati Elite',
     description: 'Advanced skills for serious learners',
     price: 532
   },
   {
     id: 'warriors',
-    name: 'Warriors Package', // Adding the name field as requested
+    name: 'Warriors Package',
     title: 'Pargati Warriors', 
     description: 'Elite training for digital champions',
     price: 1032
@@ -28,6 +36,12 @@ const packages = [
 
 // Course data
 const courses = [
+  {
+    id: 'course-0',
+    title: 'Digital Literacy Fundamentals',
+    description: 'Learn the basics of digital tools and online safety',
+    packageId: 'seed'
+  },
   {
     id: 'course-1',
     title: 'Introduction to Digital Marketing',

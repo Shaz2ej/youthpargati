@@ -34,6 +34,14 @@ function Home() {
   // Fallback data to ensure UI never breaks
   const fallbackPackages = [
     {
+      id: 'seed',
+      name: 'Seed Package',
+      title: 'Pargati Seed',
+      description: 'Get started with essential digital skills',
+      price: 199,
+      thumbnail_url: 'https://i.ibb.co/hxF0cSCz/seed-package.jpg' // Added the thumbnail URL
+    },
+    {
       id: 'basic',
       name: 'Basic Package',
       title: 'Pargati Basic',
