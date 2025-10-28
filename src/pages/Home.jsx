@@ -87,14 +87,15 @@ function Home() {
       return
     }
     
-    if (!user.id) {
+    // Fix: Use user.uid instead of user.id for Firebase user objects
+    if (!user.uid) {
       console.warn('Purchase attempt blocked: User ID not available');
       console.log('handleBuyNow: User ID check failed. User:', user);
       alert('Please log in to purchase courses.')
       return
     }
     
-    console.log('handleBuyNow: User authenticated', user.id);
+    console.log('handleBuyNow: User authenticated', user.uid);
     
     // Small delay to ensure auth state is fully loaded
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -103,7 +104,7 @@ function Home() {
     setProcessing(prev => ({ ...prev, [pkg.id]: true }))
     
     try {
-      console.log('handleBuyNow: Navigating to checkout for user', user.id);
+      console.log('handleBuyNow: Navigating to checkout for user', user.uid);
       
       // Navigate to checkout page with package and referral code data
       // Store package and referral code in session storage for the checkout page
