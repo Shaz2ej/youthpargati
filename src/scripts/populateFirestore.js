@@ -5,18 +5,21 @@ import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
 const packages = [
   {
     id: 'basic',
+    name: 'Basic Package', // Adding the name field as requested
     title: 'Pargati Basic',
     description: 'Essential skills for beginners',
     price: 376
   },
   {
     id: 'elite', 
+    name: 'Elite Package', // Adding the name field as requested
     title: 'Pargati Elite',
     description: 'Advanced skills for serious learners',
     price: 532
   },
   {
     id: 'warriors',
+    name: 'Warriors Package', // Adding the name field as requested
     title: 'Pargati Warriors', 
     description: 'Elite training for digital champions',
     price: 1032

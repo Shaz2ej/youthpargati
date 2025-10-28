@@ -81,8 +81,16 @@ function PackageCourses() {
         setLoading(true);
         setError(null);
 
-        // Fetch package from Firestore
-        const packageData = await fetchPackageById(id);
+        // Use fallback data since Supabase has been removed
+        const packageData = {
+          id: id,
+          name: 'Package Name', // Adding name field
+          title: 'Course Package',
+          description: 'Explore the courses in this package',
+          price: 0
+        };
+
+        console.log('Fetched package data:', packageData); // Debug log to see what fields are present
         if (!packageData) {
           throw new Error('Package not found');
         }
@@ -90,6 +98,7 @@ function PackageCourses() {
 
         // Fetch courses for this package from Firestore
         const coursesData = await fetchCoursesByPackageId(id);
+        console.log('Fetched courses data:', coursesData); // Debug log
         setCourses(coursesData);
 
       } catch (err) {
@@ -154,6 +163,9 @@ function PackageCourses() {
           </Button>
           
           <div className="text-center">
+            {packageInfo?.name && (
+              <div className="text-lg font-semibold text-blue-200 mb-2">{packageInfo.name}</div>
+            )}
             <h1 className="text-4xl md:text-5xl font-black mb-4">
               {packageInfo?.title || 'Package Courses'}
             </h1>

@@ -35,6 +35,7 @@ function Home() {
   const fallbackPackages = [
     {
       id: 'basic',
+      name: 'Basic Package',
       title: 'Pargati Basic',
       description: 'Essential skills for beginners',
       price: 376,
@@ -42,6 +43,7 @@ function Home() {
     },
     {
       id: 'elite', 
+      name: 'Elite Package',
       title: 'Pargati Elite',
       description: 'Advanced skills for serious learners',
       price: 532,
@@ -49,6 +51,7 @@ function Home() {
     },
     {
       id: 'warriors',
+      name: 'Warriors Package',
       title: 'Pargati Warriors', 
       description: 'Elite training for digital champions',
       price: 1032,
@@ -114,6 +117,7 @@ function Home() {
     const loadPackages = async () => {
       try {
         const packagesData = await fetchPackages();
+        console.log('Fetched packages data:', packagesData); // Debug log to see what fields are present
         setPackages(packagesData);
       } catch (err) {
         console.error('Error loading packages from Firestore:', err);
@@ -241,6 +245,9 @@ function Home() {
                       <Badge className="bg-blue-100 text-blue-600 font-bold">PACKAGE</Badge>
                       <DollarSign className="h-8 w-8 text-blue-600" />
                     </div>
+                    {pkg.name && (
+                      <div className="text-sm text-gray-500 font-semibold">{pkg.name}</div>
+                    )}
                     <CardTitle className="text-2xl font-black">{pkg.title}</CardTitle>
                     <CardDescription className="text-gray-600">
                       {pkg.description}
