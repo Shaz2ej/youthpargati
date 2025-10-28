@@ -81,15 +81,8 @@ function PackageCourses() {
         setLoading(true);
         setError(null);
 
-        // Use fallback data since Supabase has been removed
-        const packageData = {
-          id: id,
-          name: 'Package Name', // Adding name field
-          title: 'Course Package',
-          description: 'Explore the courses in this package',
-          price: 0
-        };
-
+        // Fetch package from Firestore instead of using fallback data
+        const packageData = await fetchPackageById(id);
         console.log('Fetched package data:', packageData); // Debug log to see what fields are present
         if (!packageData) {
           throw new Error('Package not found');
