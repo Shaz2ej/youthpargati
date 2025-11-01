@@ -266,7 +266,9 @@ function Home() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {pkg.thumbnail_url ? (
+                    {pkg.thumbnail ? (
+                      <img src={pkg.thumbnail} alt={pkg.title} className="w-full h-48 object-cover rounded-xl mb-3" />
+                    ) : pkg.thumbnail_url ? (
                       <img
                         src={pkg.thumbnail_url}
                         alt={pkg.title}

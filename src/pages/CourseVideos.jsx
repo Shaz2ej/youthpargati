@@ -199,49 +199,49 @@ function CourseVideos() {
               <CardContent>
                 {videos.length === 0 ? (
                   <div className="text-center py-8">
-                    <Play className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">No videos in this course</p>
+                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No videos available for this course.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {videos.map((video, index) => (
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {videos.map((video) => (
                       <div
                         key={video.id}
-                        onClick={() => handleVideoSelect(video)}
-                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                        className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
                           currentVideo?.id === video.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                            ? 'bg-orange-100 border-2 border-orange-300'
+                            : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
                         }`}
+                        onClick={() => handleVideoSelect(video)}
                       >
                         <div className="flex items-start space-x-3">
-                          {video.thumbnail_url ? (
+                          {video.thumbnail ? (
+                            <img 
+                              src={video.thumbnail} 
+                              alt={video.title} 
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                            />
+                          ) : video.thumbnail_url ? (
                             <img
                               src={video.thumbnail_url}
                               alt={video.title}
-                              className="w-16 h-12 object-cover rounded flex-shrink-0"
+                              className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                               onError={(e) => {
                                 e.target.style.display = 'none'
                               }}
                             />
                           ) : (
-                            <div className="w-16 h-12 bg-gradient-to-br from-blue-100 to-orange-100 rounded flex items-center justify-center flex-shrink-0">
-                              <Play className="h-4 w-4 text-blue-400" />
+                            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Play className="h-6 w-6 text-blue-500" />
                             </div>
                           )}
-                          
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="text-xs font-bold text-gray-500">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              {currentVideo?.id === video.id && (
-                                <Play className="h-3 w-3 text-blue-500" />
-                              )}
-                            </div>
-                            <h4 className="font-semibold text-sm text-gray-800 truncate">
+                            <h3 className="font-semibold text-gray-800 line-clamp-2">
                               {video.title}
-                            </h4>
+                            </h3>
+                            <p className="text-sm text-gray-600 line-clamp-2 mt-1">
+                              {video.description}
+                            </p>
                           </div>
                         </div>
                       </div>

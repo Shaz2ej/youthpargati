@@ -235,7 +235,9 @@ function PackageCourses() {
                     <Play className="h-6 w-6 text-blue-600" />
                   </div>
                   
-                  {course.thumbnail_url ? (
+                  {course.thumbnail ? (
+                    <img src={course.thumbnail} alt={course.title} className="w-full h-48 object-cover rounded-xl mb-3" />
+                  ) : course.thumbnail_url ? (
                     <img
                       src={course.thumbnail_url}
                       alt={course.title}

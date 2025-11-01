@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { db } from '../lib/firebase.js';
 import { collection, getDocs } from 'firebase/firestore';
 
 const verifyFirestoreData = async () => {
@@ -15,6 +15,7 @@ const verifyFirestoreData = async () => {
       console.log(`  Title: ${data.title || 'MISSING'}`);
       console.log(`  Description: ${data.description || 'MISSING'}`);
       console.log(`  Price: ${data.price || 'MISSING'}`);
+      console.log(`  Thumbnail: ${data.thumbnail || 'MISSING'}`);
       console.log(`  All fields:`, data);
     });
     
