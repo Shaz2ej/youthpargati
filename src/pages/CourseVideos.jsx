@@ -1,18 +1,88 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
-import { ArrowLeft, Play, Clock, BookOpen } from 'lucide-react'
+import { ArrowLeft, Play, Clock, BookOpen, Lock } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext.jsx'
+import { fetchCoursesByPackageId, checkUserPurchase, fetchPackageById } from '@/lib/utils.js'
 
 function CourseVideos() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { user, isLoadingAuth } = useAuth()
   const [videos, setVideos] = useState([])
   const [courseInfo, setCourseInfo] = useState(null)
   const [currentVideo, setCurrentVideo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [videoError, setVideoError] = useState(null)
+  const [hasAccess, setHasAccess] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
+
+  // Check if user has access to this course
+  useEffect(() => {
+    const checkCourseAccess = async () => {
+      if (!user || !user.uid || !id) {
+        setCheckingAccess(false);
+        return;
+      }
+
+      try {
+        // First, we need to find which package this course belongs to
+        // This is a simplified approach - in a real app, you might store packageId directly on the course
+        const allPackages = [
+          { id: 'basic', title: 'Basic Package' },
+          { id: 'elite', title: 'Elite Package' },
+          { id: 'warriors', title: 'Warriors Package' }
+        ];
+
+        let hasAccessToCourse = false;
+        let foundPackage = null;
+
+        // Check each package to see if this course belongs to it and if user has purchased it
+        for (const pkg of allPackages) {
+          try {
+            const coursesInPackage = await fetchCoursesByPackageId(pkg.id);
+            const courseInPackage = coursesInPackage.find(course => course.id === id);
+            
+            if (courseInPackage) {
+              foundPackage = pkg;
+              // Check if user has purchased this package
+              const purchased = await checkUserPurchase(pkg.id, user.uid);
+              if (purchased) {
+                hasAccessToCourse = true;
+                break;
+              }
+            }
+          } catch (err) {
+            console.warn(`Error checking package ${pkg.id}:`, err);
+          }
+        }
+
+        setHasAccess(hasAccessToCourse);
+        
+        // If no access, redirect to package page or home
+        if (!hasAccessToCourse && foundPackage) {
+          // Store in localStorage for potential use
+          localStorage.setItem(`noAccess_${id}`, JSON.stringify({
+            courseId: id,
+            packageId: foundPackage.id,
+            timestamp: Date.now()
+          }));
+        }
+      } catch (err) {
+        console.error('Error checking course access:', err);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    // Only check access if user is authenticated
+    if (!isLoadingAuth) {
+      checkCourseAccess();
+    }
+  }, [user, id, isLoadingAuth]);
 
   useEffect(() => {
     const fetchCourseAndVideos = async () => {
@@ -66,14 +136,64 @@ function CourseVideos() {
       }
     };
 
-    if (id) {
-      fetchCourseAndVideos();
+    // Only fetch course data if user has access or if we're not checking access
+    if (!checkingAccess && (hasAccess || !user)) {
+      if (id) {
+        fetchCourseAndVideos();
+      }
     }
-  }, [id]);
+  }, [id, checkingAccess, hasAccess, user]);
 
   const handleVideoSelect = (video) => {
     setCurrentVideo(video)
     setVideoError(null) // Reset video error when switching videos
+  }
+
+  // Show access denied screen if user doesn't have access
+  if (!checkingAccess && !hasAccess && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+        <Card className="w-full max-w-md border-2 border-red-300">
+          <CardHeader>
+            <div className="mx-auto bg-red-100 rounded-full p-3 mb-4">
+              <Lock className="h-12 w-12 text-red-600" />
+            </div>
+            <CardTitle className="text-red-600 text-center">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4 text-center">
+              You need to purchase a package to access this course content.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => navigate('/')}
+              >
+                Browse Packages
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate('/dashboard')}
+              >
+                Go to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (checkingAccess || isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-lg font-semibold text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {

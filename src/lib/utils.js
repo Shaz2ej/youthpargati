@@ -77,6 +77,13 @@ export const checkUserPurchase = async (packageId, userId) => {
       return false;
     }
 
+    // Check localStorage first for quick response
+    const localStorageKey = `purchase_${packageId}_${userId}`;
+    const cachedResult = localStorage.getItem(localStorageKey);
+    if (cachedResult !== null) {
+      return cachedResult === 'true';
+    }
+
     const q = query(
       collection(db, 'purchases'),
       where('package_id', '==', packageId),
@@ -85,7 +92,12 @@ export const checkUserPurchase = async (packageId, userId) => {
     );
     
     const querySnapshot = await getDocs(q);
-    return !querySnapshot.empty;
+    const hasPurchased = !querySnapshot.empty;
+    
+    // Cache the result in localStorage
+    localStorage.setItem(localStorageKey, hasPurchased.toString());
+    
+    return hasPurchased;
   } catch (error) {
     console.error('Error checking user purchase:', error);
     return false;

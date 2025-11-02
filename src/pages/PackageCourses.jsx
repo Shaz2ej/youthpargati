@@ -92,6 +92,9 @@ function PackageCourses() {
         try {
           const purchased = await checkUserPurchase(id, user.uid);
           setHasPurchased(purchased);
+          
+          // Store purchase status in localStorage for persistence
+          localStorage.setItem(`purchase_${id}_${user.uid}`, purchased.toString());
         } catch (err) {
           console.error('Error checking purchase status:', err);
         } finally {
@@ -110,6 +113,8 @@ function PackageCourses() {
         // Re-check purchase status when localStorage is updated
         checkUserPurchase(id, user.uid).then(purchased => {
           setHasPurchased(purchased);
+          // Update localStorage with new status
+          localStorage.setItem(`purchase_${id}_${user.uid}`, purchased.toString());
         });
       }
     };
@@ -241,7 +246,15 @@ function PackageCourses() {
               {hasPurchased ? (
                 <Button
                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => {
+                    // Navigate to the first course in the package if available
+                    if (courses.length > 0) {
+                      navigate(`/courses/${courses[0].id}/videos`);
+                    } else {
+                      // Fallback to dashboard if no courses found
+                      navigate('/dashboard');
+                    }
+                  }}
                 >
                   View Course
                 </Button>
@@ -325,7 +338,7 @@ function PackageCourses() {
                   {hasPurchased ? (
                     <Button
                       className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-3"
-                      onClick={() => navigate(`/course-videos/${course.id}`)}
+                      onClick={() => navigate(`/courses/${course.id}/videos`)}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Start Learning

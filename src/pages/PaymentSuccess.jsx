@@ -12,6 +12,7 @@ function PaymentSuccess() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [packageData, setPackageData] = useState(null)
 
   // Function to create purchase record in Firestore
   const createPurchaseRecord = async (packageData, user) => {
@@ -50,6 +51,7 @@ function PaymentSuccess() {
         
         if (storedPackage) {
           const packageData = JSON.parse(storedPackage);
+          setPackageData(packageData);
           
           // Create purchase record in Firestore
           await createPurchaseRecord(packageData, user);
@@ -75,8 +77,13 @@ function PaymentSuccess() {
   }, [user])
 
   const handleViewCourse = () => {
-    // Redirect to dashboard where purchased courses will be visible
-    navigate('/dashboard')
+    // Redirect to the package courses page
+    if (packageData && packageData.id) {
+      navigate(`/packages/${packageData.id}/courses`);
+    } else {
+      // Fallback to dashboard
+      navigate('/dashboard');
+    }
   }
 
   const handleGoHome = () => {
