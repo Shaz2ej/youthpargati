@@ -223,7 +223,7 @@ export default function StudentDashboard() {
                               </span>
                             </div>
                             <Button 
-                              onClick={() => navigate(`/package/${purchase.package_id}`)}
+                              onClick={() => navigate(`/packages/${purchase.package_id}/courses`)}
                               className="w-full bg-green-600 hover:bg-green-700"
                             >
                               View Course

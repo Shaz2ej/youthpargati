@@ -62,7 +62,7 @@ function CourseVideos() {
 
         setHasAccess(hasAccessToCourse);
         
-        // If no access, redirect to package page or home
+        // If no access, we'll show the access denied screen (no automatic redirect)
         if (!hasAccessToCourse && foundPackage) {
           // Store in localStorage for potential use
           localStorage.setItem(`noAccess_${id}`, JSON.stringify({
@@ -167,9 +167,10 @@ function CourseVideos() {
             <div className="flex flex-col gap-3">
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => navigate('/')}
+                onClick={() => navigate(`/packages/${localStorage.getItem(`noAccess_${id}`) ? JSON.parse(localStorage.getItem(`noAccess_${id}`)).packageId : ''}/courses`)}
+                disabled={!localStorage.getItem(`noAccess_${id}`)}
               >
-                Browse Packages
+                Go to Package
               </Button>
               <Button 
                 variant="outline" 
