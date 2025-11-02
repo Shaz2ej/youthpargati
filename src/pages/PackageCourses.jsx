@@ -3,16 +3,16 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
-import { BookOpen, ArrowLeft, Play } from 'lucide-react'
+import { BookOpen, ArrowLeft, Play, Video } from 'lucide-react'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { fetchPackageById, fetchCoursesByPackageId, checkUserPurchase } from '@/lib/utils.js'
+import { fetchPackageById, fetchPackageCoursesWithVideos, checkUserPurchase } from '@/lib/utils.js'
 
 function PackageCourses() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, isLoadingAuth } = useAuth()
-  const [courses, setCourses] = useState([])
+  const [coursesWithVideos, setCoursesWithVideos] = useState([])
   const [packageInfo, setPackageInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -140,10 +140,10 @@ function PackageCourses() {
         }
         setPackageInfo(packageData);
 
-        // Fetch courses for this package from Firestore
-        const coursesData = await fetchCoursesByPackageId(id);
-        console.log('Fetched courses data:', coursesData); // Debug log
-        setCourses(coursesData);
+        // Fetch courses with videos for this package from Firestore
+        const coursesData = await fetchPackageCoursesWithVideos(packageData);
+        console.log('Fetched courses with videos data:', coursesData); // Debug log
+        setCoursesWithVideos(coursesData);
 
       } catch (err) {
         console.error('Error:', err);
@@ -248,8 +248,8 @@ function PackageCourses() {
                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6"
                   onClick={() => {
                     // Navigate to the first course in the package if available
-                    if (courses.length > 0) {
-                      navigate(`/courses/${courses[0].id}/videos`);
+                    if (coursesWithVideos.length > 0) {
+                      navigate(`/courses/${coursesWithVideos[0].id}/videos`);
                     } else {
                       // Fallback to dashboard if no courses found
                       navigate('/dashboard');
@@ -283,77 +283,114 @@ function PackageCourses() {
           </p>
         </div>
 
-        {courses.length === 0 ? (
+        {coursesWithVideos.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No Courses Available</h3>
             <p className="text-gray-500">This package doesn't have any courses yet.</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <Card
-                key={course.id}
-                className="bg-white shadow-xl border-2 border-blue-200 hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge className="bg-blue-100 text-blue-600 font-bold">COURSE</Badge>
-                    <Play className="h-6 w-6 text-blue-600" />
+          <div className="space-y-12">
+            {coursesWithVideos.map((course) => (
+              <div key={course.id} className="space-y-6">
+                {/* Course Card */}
+                <Card className="bg-white shadow-xl border-2 border-blue-200 hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+                  <CardHeader>
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge className="bg-blue-100 text-blue-600 font-bold">COURSE</Badge>
+                      <Play className="h-6 w-6 text-blue-600" />
+                    </div>
+                    
+                    {course.thumbnail ? (
+                      <img src={course.thumbnail} alt={course.title} className="w-full h-48 object-cover rounded-xl mb-3" />
+                    ) : course.thumbnail_url ? (
+                      <img
+                        src={course.thumbnail_url}
+                        alt={course.title}
+                        className="w-full h-40 object-cover rounded-lg mb-4"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-gradient-to-br from-blue-100 to-orange-100 rounded-lg mb-4 flex items-center justify-center">
+                        <BookOpen className="h-12 w-12 text-blue-400" />
+                      </div>
+                    )}
+                    
+                    <CardTitle className="text-xl font-black text-gray-800">
+                      {course.title}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 line-clamp-3">
+                      {course.description || 'Learn new skills with this comprehensive course.'}
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    {course.duration && (
+                      <div className="flex items-center text-sm text-gray-500 mb-4">
+                        <Play className="h-4 w-4 mr-1" />
+                        Duration: {course.duration}
+                      </div>
+                    )}
+                    
+                    {hasPurchased ? (
+                      <Button
+                        className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-3"
+                        onClick={() => navigate(`/courses/${course.id}/videos`)}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Start Learning
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3"
+                        disabled
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Buy Package to Access
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Videos Section for this Course */}
+                {course.videos && course.videos.length > 0 && (
+                  <div className="ml-4 pl-4 border-l-2 border-blue-200">
+                    <h3 className="text-2xl font-bold text-blue-600 mb-4 flex items-center">
+                      <Video className="h-6 w-6 mr-2" />
+                      Videos in this Course ({course.videos.length})
+                    </h3>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {course.videos.map((video) => (
+                        <Card key={video.id} className="bg-white border border-gray-200">
+                          <CardContent className="p-4">
+                            <h4 className="font-semibold text-gray-800 mb-2">{video.title}</h4>
+                            <p className="text-sm text-gray-600 mb-3">{video.description || 'No description available'}</p>
+                            {hasPurchased ? (
+                              <Button
+                                size="sm"
+                                className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                onClick={() => navigate(`/courses/${course.id}/videos`)}
+                              >
+                                Watch Video
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="w-full bg-gray-100 text-gray-500"
+                                disabled
+                              >
+                                Locked
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                  
-                  {course.thumbnail ? (
-                    <img src={course.thumbnail} alt={course.title} className="w-full h-48 object-cover rounded-xl mb-3" />
-                  ) : course.thumbnail_url ? (
-                    <img
-                      src={course.thumbnail_url}
-                      alt={course.title}
-                      className="w-full h-40 object-cover rounded-lg mb-4"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-40 bg-gradient-to-br from-blue-100 to-orange-100 rounded-lg mb-4 flex items-center justify-center">
-                      <BookOpen className="h-12 w-12 text-blue-400" />
-                    </div>
-                  )}
-                  
-                  <CardTitle className="text-xl font-black text-gray-800">
-                    {course.title}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 line-clamp-3">
-                    {course.description || 'Learn new skills with this comprehensive course.'}
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent>
-                  {course.duration && (
-                    <div className="flex items-center text-sm text-gray-500 mb-4">
-                      <Play className="h-4 w-4 mr-1" />
-                      Duration: {course.duration}
-                    </div>
-                  )}
-                  
-                  {hasPurchased ? (
-                    <Button
-                      className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-3"
-                      onClick={() => navigate(`/courses/${course.id}/videos`)}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Start Learning
-                    </Button>
-                  ) : (
-                    <Button
-                      className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3"
-                      disabled
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Buy Package to Access
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+                )}
+              </div>
             ))}
           </div>
         )}

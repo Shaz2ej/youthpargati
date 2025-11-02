@@ -1,7 +1,7 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, where, documentId } from 'firebase/firestore';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -44,7 +44,7 @@ export const fetchPackageById = async (packageId) => {
 };
 
 /**
- * Fetch courses for a specific package from Firestore
+ * Fetch courses for a specific package from Firestore (using packageId field)
  * @param {string} packageId - The ID of the package
  * @returns {Promise<Array>} Array of course objects
  */
@@ -60,6 +60,141 @@ export const fetchCoursesByPackageId = async (packageId) => {
   } catch (error) {
     console.error(`Error fetching courses for package ${packageId} from Firestore:`, error);
     throw error;
+  }
+};
+
+/**
+ * Fetch courses by array of course IDs (new implementation for array-based approach)
+ * @param {Array} courseIds - Array of course IDs
+ * @returns {Promise<Array>} Array of course objects
+ */
+export const fetchCoursesByIds = async (courseIds) => {
+  try {
+    // Task 3: Log selected package
+    console.log("Selected course IDs:", courseIds);
+    
+    // Task 9: Handle duplicates in courseIds
+    const uniqueCourseIds = courseIds ? [...new Set(courseIds)] : [];
+    
+    // Validate input
+    if (!uniqueCourseIds.length) {
+      console.warn("No course IDs provided");
+      return [];
+    }
+    
+    // Task 4: Modify Firestore query to fetch all valid courses
+    let allCourses = [];
+    
+    // Handle Firestore 'in' query limit of 10 items (Task 10)
+    if (uniqueCourseIds.length <= 10) {
+      const q = query(
+        collection(db, "courses"),
+        where(documentId(), "in", uniqueCourseIds)
+      );
+      const querySnapshot = await getDocs(q);
+      allCourses = querySnapshot.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data() 
+      }));
+    } else {
+      // For larger arrays, split into batches of 10
+      const batches = [];
+      for (let i = 0; i < uniqueCourseIds.length; i += 10) {
+        batches.push(uniqueCourseIds.slice(i, i + 10));
+      }
+      
+      const batchPromises = batches.map(async (batch) => {
+        const q = query(
+          collection(db, "courses"),
+          where(documentId(), "in", batch)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        }));
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      allCourses = batchResults.flat();
+    }
+    
+    // Task 5: Log invalid course IDs
+    const fetchedCourseIds = allCourses.map(course => course.id);
+    const invalidCourseIds = uniqueCourseIds.filter(id => !fetchedCourseIds.includes(id));
+    invalidCourseIds.forEach(id => {
+      console.warn("Invalid course ID:", id);
+    });
+    
+    // Task 6: Log fetched courses
+    console.log("Fetched courses:", allCourses);
+    
+    return allCourses;
+  } catch (error) {
+    console.error("Error fetching courses by IDs:", error);
+    return [];
+  }
+};
+
+/**
+ * Fetch videos for a specific course
+ * @param {string} courseId - The ID of the course
+ * @returns {Promise<Array>} Array of video objects
+ */
+export const fetchVideosByCourseId = async (courseId) => {
+  try {
+    // Check if videos collection exists
+    const videosRef = collection(db, "videos");
+    const vq = query(videosRef, where("courseId", "==", courseId));
+    const videosSnapshot = await getDocs(vq);
+    const fetchedVideos = videosSnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    }));
+    
+    // Task 7: Log fetched videos
+    console.log("Videos for course", courseId, ":", fetchedVideos);
+    
+    return fetchedVideos;
+  } catch (error) {
+    console.error("Error fetching videos for course", courseId, ":", error);
+    return [];
+  }
+};
+
+/**
+ * Fetch courses with videos for a package
+ * @param {Object} selectedPackage - The package object containing course IDs
+ * @returns {Promise<Array>} Array of course objects with videos
+ */
+export const fetchPackageCoursesWithVideos = async (selectedPackage) => {
+  try {
+    // Get courses by IDs
+    const courses = await fetchCoursesByIds(selectedPackage.courses || []);
+    
+    // Task 7: For each fetched course, fetch its related videos
+    const coursesWithVideos = await Promise.all(
+      courses.map(async (course) => {
+        try {
+          const videos = await fetchVideosByCourseId(course.id);
+          return {
+            ...course,
+            videos: videos
+          };
+        } catch (videoError) {
+          console.error("Error fetching videos for course", course.id, ":", videoError);
+          return {
+            ...course,
+            videos: []
+          };
+        }
+      })
+    );
+    
+    return coursesWithVideos;
+  } catch (error) {
+    console.error("Error fetching package courses with videos:", error);
+    return [];
   }
 };
 
