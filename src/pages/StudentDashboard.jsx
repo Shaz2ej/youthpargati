@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
+import { fetchUserPurchases, fetchPackageById } from '@/lib/utils.js';
 
 export default function StudentDashboard() {
   const [userData, setUserData] = useState(null);
@@ -12,6 +13,8 @@ export default function StudentDashboard() {
   const [mobile, setMobile] = useState("");
   const [state, setState] = useState("");
   const [profileCompleted, setProfileCompleted] = useState(false);
+  const [purchases, setPurchases] = useState([]);
+  const [packages, setPackages] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +45,42 @@ export default function StudentDashboard() {
     fetchUser();
   }, [navigate]);
 
+  // Fetch user purchases and package details
+  useEffect(() => {
+    const fetchPurchasesAndPackages = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        // Fetch user purchases
+        const userPurchases = await fetchUserPurchases(user.uid);
+        setPurchases(userPurchases);
+
+        // Fetch package details for each purchase
+        const packagePromises = userPurchases.map(purchase => 
+          fetchPackageById(purchase.package_id)
+        );
+        
+        const packageResults = await Promise.all(packagePromises);
+        // Filter out any null results and create a map of package details
+        const packageMap = {};
+        packageResults.forEach((pkg, index) => {
+          if (pkg) {
+            packageMap[userPurchases[index].package_id] = pkg;
+          }
+        });
+        
+        setPackages(packageMap);
+      } catch (error) {
+        console.error('Error fetching purchases:', error);
+      }
+    };
+
+    if (profileCompleted) {
+      fetchPurchasesAndPackages();
+    }
+  }, [profileCompleted]);
+
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return;
@@ -68,7 +107,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-black text-center mb-8 text-blue-600">
           Welcome, {userData?.name || "Student"} 👋
         </h1>
@@ -110,35 +149,94 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-black text-blue-600">Dashboard</CardTitle>
-              <CardDescription className="text-gray-600">
-                Your profile is complete. Welcome to your dashboard!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium text-gray-600">Name:</span>
-                <span className="font-semibold">{userData?.name || "N/A"}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium text-gray-600">Email:</span>
-                <span className="font-semibold">{userData?.email || "N/A"}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium text-gray-600">Mobile:</span>
-                <span className="font-semibold">{userData?.mobile_number || "N/A"}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="font-medium text-gray-600">State:</span>
-                <span className="font-semibold">{userData?.state || "N/A"}</span>
-              </div>
-              <div className="pt-4 text-center text-sm text-gray-500">
-                <p>You'll earn commission based on your current package level, regardless of which package the referred person buys.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-8">
+            <Card className="bg-white shadow-2xl border rounded-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-black text-blue-600">Your Profile</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Your account information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Name:</span>
+                  <span className="font-semibold">{userData?.name || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Email:</span>
+                  <span className="font-semibold">{userData?.email || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Mobile:</span>
+                  <span className="font-semibold">{userData?.mobile_number || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">State:</span>
+                  <span className="font-semibold">{userData?.state || "N/A"}</span>
+                </div>
+                <div className="pt-4 text-center text-sm text-gray-500">
+                  <p>You'll earn commission based on your current package level, regardless of which package the referred person buys.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Purchased Packages Section */}
+            <Card className="bg-white shadow-2xl border rounded-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-black text-blue-600">Your Courses</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Courses you've purchased
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {purchases.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">You haven't purchased any courses yet.</p>
+                    <Button 
+                      onClick={() => navigate('/')} 
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Browse Courses
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {purchases.map((purchase) => {
+                      const pkg = packages[purchase.package_id];
+                      return pkg ? (
+                        <Card key={purchase.id} className="border-2 border-blue-200">
+                          <CardHeader>
+                            <CardTitle className="text-lg font-bold text-blue-600">
+                              {pkg.title}
+                            </CardTitle>
+                            <CardDescription>
+                              {pkg.description}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="font-semibold text-green-600">Purchased</span>
+                              <span className="text-sm text-gray-500">
+                                {purchase.purchase_date?.toDate ? 
+                                  purchase.purchase_date.toDate().toLocaleDateString() : 
+                                  'Date unknown'}
+                              </span>
+                            </div>
+                            <Button 
+                              onClick={() => navigate(`/package/${purchase.package_id}`)}
+                              className="w-full bg-green-600 hover:bg-green-700"
+                            >
+                              View Course
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>

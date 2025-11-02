@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { BookOpen, ArrowLeft, Play } from 'lucide-react'
 import { handlePackagePayment } from '@/lib/payment.js'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { fetchPackageById, fetchCoursesByPackageId } from '@/lib/utils.js'
+import { fetchPackageById, fetchCoursesByPackageId, checkUserPurchase } from '@/lib/utils.js'
 
 function PackageCourses() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user, isLoadingAuth } = useAuth()
   const [courses, setCourses] = useState([])
   const [packageInfo, setPackageInfo] = useState(null)
@@ -17,6 +18,8 @@ function PackageCourses() {
   const [error, setError] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [referralCode, setReferralCode] = useState('')
+  const [hasPurchased, setHasPurchased] = useState(false)
+  const [checkingPurchase, setCheckingPurchase] = useState(true)
 
   const handleBuyNow = async () => {
     console.log('PackageCourses: handleBuyNow called');
@@ -62,6 +65,12 @@ function PackageCourses() {
         phone: user.user_metadata?.phone || ''
       };
       
+      // Store package info in session storage before payment
+      sessionStorage.setItem('checkoutPackage', JSON.stringify(packageInfo));
+      if (referralCode) {
+        sessionStorage.setItem('referralCode', referralCode);
+      }
+      
       // Process payment with referral code if provided
       await handlePackagePayment(packageInfo, {
         uid: user.uid,  // Fix: Use user.uid instead of user.id
@@ -75,6 +84,42 @@ function PackageCourses() {
       setProcessing(false)
     }
   }
+
+  // Check if user has purchased this package
+  useEffect(() => {
+    const checkPurchaseStatus = async () => {
+      if (user && user.uid && id) {
+        try {
+          const purchased = await checkUserPurchase(id, user.uid);
+          setHasPurchased(purchased);
+        } catch (err) {
+          console.error('Error checking purchase status:', err);
+        } finally {
+          setCheckingPurchase(false);
+        }
+      } else {
+        setCheckingPurchase(false);
+      }
+    };
+
+    checkPurchaseStatus();
+    
+    // Listen for localStorage changes to update UI after payment
+    const handleStorageChange = (e) => {
+      if (e.key === 'lastPurchase' && user && user.uid && id) {
+        // Re-check purchase status when localStorage is updated
+        checkUserPurchase(id, user.uid).then(purchased => {
+          setHasPurchased(purchased);
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user, id]);
 
   useEffect(() => {
     const fetchPackageAndCourses = async () => {
@@ -108,7 +153,7 @@ function PackageCourses() {
     }
   }, [id]);
 
-  if (loading) {
+  if (loading || checkingPurchase) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
@@ -175,12 +220,12 @@ function PackageCourses() {
             {/* Referral code input */}
             <div className="max-w-md mx-auto mt-6">
               <div className="flex">
-                <Input 
+                <input 
                   type="text" 
                   placeholder="Referral code (optional)" 
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value)}
-                  className="rounded-r-none text-gray-800"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-r-none text-gray-800"
                 />
                 <Button 
                   variant="outline" 
@@ -193,13 +238,22 @@ function PackageCourses() {
             </div>
             
             <div className="mt-6">
-              <Button
-                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6"
-                onClick={handleBuyNow}
-                disabled={isLoadingAuth || !user || processing}
-              >
-                {processing ? 'Processing...' : 'Buy This Package Now'}
-              </Button>
+              {hasPurchased ? (
+                <Button
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  View Course
+                </Button>
+              ) : (
+                <Button
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6"
+                  onClick={handleBuyNow}
+                  disabled={isLoadingAuth || !user || processing}
+                >
+                  {processing ? 'Processing...' : 'Buy This Package Now'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -268,13 +322,23 @@ function PackageCourses() {
                     </div>
                   )}
                   
-                  <Button
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3"
-                    disabled
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Buy Package to Access
-                  </Button>
+                  {hasPurchased ? (
+                    <Button
+                      className="w-full bg-green-600 text-white hover:bg-green-700 font-bold py-3"
+                      onClick={() => navigate(`/course-videos/${course.id}`)}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Start Learning
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full bg-blue-600 text-white hover:bg-blue-700 font-bold py-3"
+                      disabled
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Buy Package to Access
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

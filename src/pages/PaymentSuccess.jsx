@@ -30,6 +30,13 @@ function PaymentSuccess() {
     const docRef = await addDoc(collection(db, "purchases"), purchaseData);
     console.log('Purchase record created with ID:', docRef.id);
     
+    // Store purchase info in localStorage to trigger UI updates
+    localStorage.setItem('lastPurchase', JSON.stringify({
+      packageId: packageData.id,
+      userId: user.uid,
+      timestamp: Date.now()
+    }));
+    
     return docRef.id;
   };
 

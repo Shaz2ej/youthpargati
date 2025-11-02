@@ -62,3 +62,64 @@ export const fetchCoursesByPackageId = async (packageId) => {
     throw error;
   }
 };
+
+/**
+ * Check if a user has purchased a specific package
+ * @param {string} packageId - The ID of the package
+ * @param {string} userId - The user ID
+ * @returns {Promise<boolean>} Whether the user has purchased the package
+ */
+export const checkUserPurchase = async (packageId, userId) => {
+  try {
+    // Validate inputs
+    if (!packageId || !userId) {
+      console.warn('checkUserPurchase: Missing packageId or userId');
+      return false;
+    }
+
+    const q = query(
+      collection(db, 'purchases'),
+      where('package_id', '==', packageId),
+      where('student_uid', '==', userId),
+      where('payment_status', '==', 'success')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error('Error checking user purchase:', error);
+    return false;
+  }
+};
+
+/**
+ * Fetch all purchases for a user
+ * @param {string} userId - The user ID
+ * @returns {Promise<Array>} Array of purchase objects
+ */
+export const fetchUserPurchases = async (userId) => {
+  try {
+    // Validate input
+    if (!userId) {
+      console.warn('fetchUserPurchases: Missing userId');
+      return [];
+    }
+
+    const q = query(
+      collection(db, 'purchases'),
+      where('student_uid', '==', userId),
+      where('payment_status', '==', 'success')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const purchases = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    return purchases;
+  } catch (error) {
+    console.error('Error fetching user purchases:', error);
+    return [];
+  }
+};
