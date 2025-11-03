@@ -105,6 +105,10 @@ function CourseVideos() {
         // Fetch videos from chapters subcollection instead of course_videos collection
         console.log(`Fetching chapters for course: ${id}`);
         const chaptersRef = collection(db, "courses", id, "chapters");
+        
+        // Add the required logging for the fetching path
+        console.log("Fetching path:", `courses/${id}/chapters`);
+        
         const chaptersSnapshot = await getDocs(chaptersRef);
         
         if (chaptersSnapshot.empty) {
@@ -128,6 +132,8 @@ function CourseVideos() {
 
       } catch (err) {
         console.error('Error:', err);
+        // Add the required error logging with courseId
+        console.error("Error fetching videos for course:", id, err);
         setError(`Error loading videos: ${err.message}`);
       } finally {
         setLoading(false);

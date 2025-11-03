@@ -146,6 +146,10 @@ export const fetchVideosByCourseId = async (courseId) => {
     // Check if videos collection exists
     const videosRef = collection(db, "videos");
     const vq = query(videosRef, where("courseId", "==", courseId));
+    
+    // Add the required logging for the fetching path
+    console.log("Fetching path:", `courses/${courseId}/chapters`);
+    
     const videosSnapshot = await getDocs(vq);
     const fetchedVideos = videosSnapshot.docs.map(doc => ({ 
       id: doc.id, 
@@ -157,7 +161,8 @@ export const fetchVideosByCourseId = async (courseId) => {
     
     return fetchedVideos;
   } catch (error) {
-    console.error("Error fetching videos for course", courseId, ":", error);
+    // Add the required error logging with courseId
+    console.error("Error fetching videos for course:", courseId, error);
     return [];
   }
 };
