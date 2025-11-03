@@ -130,16 +130,17 @@ function CourseVideos() {
         setCourseInfo(courseData);
 
         // Fetch videos from chapters subcollection instead of course_videos collection
-        console.log(`Fetching chapters for course: ${id}`);
-        const chaptersRef = collection(db, "courses", id, "chapters");
+        console.log(`Fetching Chapters for course: ${id}`);
+        // WARNING: Database may use lowercase 'chapters' - verify with actual database structure
+        const chaptersRef = collection(db, "courses", id, "Chapters");
         
         // Add the required logging for the fetching path
-        console.log("Fetching path:", `courses/${id}/chapters`);
+        console.log("Fetching path:", `courses/${id}/Chapters`);
         
         const chaptersSnapshot = await getDocs(chaptersRef);
         
         if (chaptersSnapshot.empty) {
-          console.log(`No chapters found for course: ${id}`);
+          console.log(`No Chapters found for course: ${id}`);
           setVideos([]);
         } else {
           const chaptersData = chaptersSnapshot.docs.map(doc => ({
@@ -148,7 +149,7 @@ function CourseVideos() {
           }));
           
           // Updated to match exact requirement: Log with courseId and chaptersData
-          console.log("Fetched chapters for", id, chaptersData);
+          console.log("Fetched Chapters for", id, chaptersData);
           setVideos(chaptersData);
           
           // Set the first video as current if available

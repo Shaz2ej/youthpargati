@@ -162,9 +162,10 @@ export const fetchCoursesByIds = async (courseIds) => {
 export const fetchVideosByCourseId = async (courseId) => {
   try {
     // ✅ Fetch chapters from subcollection under each course
-    const chaptersRef = collection(db, "courses", courseId, "chapters"); // use exact case as in Firestore
+    // WARNING: Database may use lowercase 'chapters' - verify with actual database structure
+    const chaptersRef = collection(db, "courses", courseId, "Chapters"); // use exact case as in Firestore
 
-    console.log("Fetching path:", `courses/${courseId}/chapters`);
+    console.log("Fetching path:", `courses/${courseId}/Chapters`);
 
     const chaptersSnapshot = await getDocs(chaptersRef);
     const fetchedChapters = chaptersSnapshot.docs.map(doc => ({
