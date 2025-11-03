@@ -143,25 +143,20 @@ export const fetchCoursesByIds = async (courseIds) => {
  */
 export const fetchVideosByCourseId = async (courseId) => {
   try {
-    // Check if videos collection exists
-    const videosRef = collection(db, "videos");
-    const vq = query(videosRef, where("courseId", "==", courseId));
-    
-    // Add the required logging for the fetching path
+    // ✅ Fetch chapters from subcollection under each course
+    const chaptersRef = collection(db, "courses", courseId, "chapters"); // use exact case as in Firestore
+
     console.log("Fetching path:", `courses/${courseId}/chapters`);
-    
-    const videosSnapshot = await getDocs(vq);
-    const fetchedVideos = videosSnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data() 
+
+    const chaptersSnapshot = await getDocs(chaptersRef);
+    const fetchedChapters = chaptersSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
     }));
-    
-    // Task 7: Log fetched videos
-    console.log("Videos for course", courseId, ":", fetchedVideos);
-    
-    return fetchedVideos;
+
+    console.log("Videos for course", courseId, ":", fetchedChapters);
+    return fetchedChapters;
   } catch (error) {
-    // Add the required error logging with courseId
     console.error("Error fetching videos for course:", courseId, error);
     return [];
   }
