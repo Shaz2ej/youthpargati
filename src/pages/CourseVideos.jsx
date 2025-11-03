@@ -116,8 +116,8 @@ function CourseVideos() {
             ...doc.data()
           }));
           
-          // Updated to match requirement: Log "Fetched chapters:" with the data
-          console.log("Fetched chapters:", chaptersData);
+          // Updated to match exact requirement: Log with courseId and chaptersData
+          console.log("Fetched chapters for", id, chaptersData);
           setVideos(chaptersData);
           
           // Set the first video as current if available
