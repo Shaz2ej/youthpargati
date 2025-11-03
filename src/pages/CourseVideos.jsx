@@ -26,7 +26,9 @@ function CourseVideos() {
   // Check if user has access to this course
   useEffect(() => {
     const checkCourseAccess = async () => {
+      console.log('Checking course access for course:', id, 'user:', user?.uid);
       if (!user || !user.uid || !id) {
+        console.log('Skipping access check - missing user or course ID', { user: !!user, userId: user?.uid, courseId: id });
         setCheckingAccess(false);
         return;
       }
@@ -46,10 +48,12 @@ function CourseVideos() {
         // Check each package to see if this course belongs to it and if user has purchased it
         for (const pkg of allPackages) {
           try {
+            console.log('Checking package:', pkg.id, 'for course:', id);
             const coursesInPackage = await fetchCoursesByPackageId(pkg.id);
             const courseInPackage = coursesInPackage.find(course => course.id === id);
             
             if (courseInPackage) {
+              console.log('Found course', id, 'in package', pkg.id);
               foundPackage = pkg;
               // Check if user has purchased this package
               // Add safeguard check before calling checkUserPurchase
@@ -59,8 +63,10 @@ function CourseVideos() {
                 return;
               }
               const purchased = await checkUserPurchase(pkg.id, user.uid);
+              console.log('User purchase status for package', pkg.id, ':', purchased);
               if (purchased) {
                 hasAccessToCourse = true;
+                console.log('User has access to course', id, 'through package', pkg.id);
                 break;
               }
             }
@@ -70,10 +76,12 @@ function CourseVideos() {
         }
 
         setHasAccess(hasAccessToCourse);
+        console.log('Final access status for course', id, ':', hasAccessToCourse);
         
         // If no access, we'll show the access denied screen (no automatic redirect)
         if (!hasAccessToCourse && foundPackage) {
           // Store in localStorage for potential use
+          console.log("Storing noAccess data for course:", id, "package:", foundPackage.id);
           localStorage.setItem(`noAccess_${id}`, JSON.stringify({
             courseId: id,
             packageId: foundPackage.id,
@@ -89,6 +97,7 @@ function CourseVideos() {
 
     // Only check access if user is authenticated
     if (!isLoadingAuth) {
+      console.log('Initiating course access check');
       checkCourseAccess();
     }
   }, [user, id, isLoadingAuth]);
@@ -96,6 +105,7 @@ function CourseVideos() {
   useEffect(() => {
     const fetchCourseAndVideos = async () => {
       try {
+        console.log('Fetching course and videos for course:', id, 'access status:', hasAccess);
         setLoading(true)
         setError(null)
 
@@ -148,6 +158,7 @@ function CourseVideos() {
 
     // Only fetch course data if user has access or if we're not checking access
     if (!checkingAccess && (hasAccess || !user)) {
+      console.log('Initiating course and videos fetch', { checkingAccess, hasAccess, user: !!user });
       if (id) {
         fetchCourseAndVideos();
       }
@@ -161,6 +172,25 @@ function CourseVideos() {
 
   // Show access denied screen if user doesn't have access
   if (!checkingAccess && !hasAccess && user) {
+    // Retrieve and validate packageId from localStorage
+    const noAccessData = localStorage.getItem(`noAccess_${id}`);
+    let packageId = '';
+    
+    if (noAccessData) {
+      try {
+        const parsedData = JSON.parse(noAccessData);
+        console.log("Retrieved noAccess data:", parsedData);
+        packageId = parsedData.packageId || '';
+        if (!packageId) {
+          console.warn("packageId not found in noAccess data for course:", id);
+        }
+      } catch (parseError) {
+        console.error("Error parsing noAccess data for course:", id, parseError);
+      }
+    } else {
+      console.warn("No noAccess data found for course:", id);
+    }
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 flex items-center justify-center">
         <Card className="w-full max-w-md border-2 border-red-300">
@@ -177,8 +207,11 @@ function CourseVideos() {
             <div className="flex flex-col gap-3">
               <Button 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => navigate(`/packages/${localStorage.getItem(`noAccess_${id}`) ? JSON.parse(localStorage.getItem(`noAccess_${id}`)).packageId : ''}/courses`)}
-                disabled={!localStorage.getItem(`noAccess_${id}`)}
+                onClick={() => {
+                  console.log("Navigating to package:", packageId);
+                  navigate(`/packages/${packageId}/courses`);
+                }}
+                disabled={!packageId}
               >
                 Go to Package
               </Button>

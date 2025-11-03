@@ -18,6 +18,11 @@ function PaymentSuccess() {
   const createPurchaseRecord = async (packageData, user) => {
     if (!user || !user.uid) throw new Error("User not authenticated");
     
+    // Validate packageData
+    if (!packageData || !packageData.id) {
+      throw new Error("Invalid package data");
+    }
+    
     const purchaseData = {
       amount: packageData.price,
       package_id: packageData.id,
@@ -26,7 +31,7 @@ function PaymentSuccess() {
       student_uid: user.uid  // Using student_uid as requested
     };
     
-    console.log('Creating purchase record:', purchaseData);
+    console.log('Creating purchase record for package:', packageData.id, 'user:', user.uid, 'data:', purchaseData);
     
     const docRef = await addDoc(collection(db, "purchases"), purchaseData);
     console.log('Purchase record created with ID:', docRef.id);
@@ -51,11 +56,12 @@ function PaymentSuccess() {
         
         if (storedPackage) {
           const packageData = JSON.parse(storedPackage);
+          console.log('Parsed package data:', packageData);
           setPackageData(packageData);
           
           // Create purchase record in Firestore
           await createPurchaseRecord(packageData, user);
-          console.log('Purchase record created successfully');
+          console.log('Purchase record created successfully for package:', packageData.id);
         } else {
           console.warn('No package data found in session storage for purchase record');
         }
@@ -73,6 +79,7 @@ function PaymentSuccess() {
       }
     }
     
+    console.log('PaymentSuccess component loaded, processing payment for user:', user?.uid);
     processPayment()
   }, [user])
 

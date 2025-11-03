@@ -57,20 +57,33 @@ export default function StudentDashboard() {
         setPurchases(userPurchases);
 
         // Fetch package details for each purchase
-        const packagePromises = userPurchases.map(purchase => 
-          fetchPackageById(purchase.package_id)
-        );
+        const packagePromises = userPurchases.map(purchase => {
+          // Validate package_id before fetching
+          if (!purchase.package_id) {
+            console.warn('Missing package_id in purchase:', purchase);
+            return Promise.resolve(null);
+          }
+          console.log('Fetching package details for purchase:', purchase.id, 'package_id:', purchase.package_id);
+          return fetchPackageById(purchase.package_id);
+        });
         
         const packageResults = await Promise.all(packagePromises);
         // Filter out any null results and create a map of package details
         const packageMap = {};
         packageResults.forEach((pkg, index) => {
           if (pkg) {
-            packageMap[userPurchases[index].package_id] = pkg;
+            const packageId = userPurchases[index].package_id;
+            if (packageId) {
+              console.log('Mapping package details for package:', packageId);
+              packageMap[packageId] = pkg;
+            } else {
+              console.warn('Missing package_id for purchase at index:', index);
+            }
           }
         });
         
         setPackages(packageMap);
+        console.log('Final package map:', packageMap);
       } catch (error) {
         console.error('Error fetching purchases:', error);
       }
@@ -202,7 +215,15 @@ export default function StudentDashboard() {
                 ) : (
                   <div className="grid md:grid-cols-2 gap-6">
                     {purchases.map((purchase) => {
+                      // Validate package_id before accessing packages
+                      if (!purchase.package_id) {
+                        console.warn('Missing package_id in purchase for rendering:', purchase);
+                        return null;
+                      }
+                      
                       const pkg = packages[purchase.package_id];
+                      console.log('Rendering purchase:', purchase.id, 'package_id:', purchase.package_id, 'package exists:', !!pkg);
+                      
                       return pkg ? (
                         <Card key={purchase.id} className="border-2 border-blue-200">
                           <CardHeader>
@@ -223,7 +244,10 @@ export default function StudentDashboard() {
                               </span>
                             </div>
                             <Button 
-                              onClick={() => navigate(`/packages/${purchase.package_id}/courses`)}
+                              onClick={() => {
+                                console.log('Navigating to package courses for package:', purchase.package_id);
+                                navigate(`/packages/${purchase.package_id}/courses`);
+                              }}
                               className="w-full bg-green-600 hover:bg-green-700"
                             >
                               View Course

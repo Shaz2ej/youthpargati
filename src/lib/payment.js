@@ -160,6 +160,17 @@ export const createPay0ShopOrder = async (orderData, referralCode = null) => {
 export const handlePackagePayment = async (packageData, userData, referralCode = null) => {
   // In a real application, you would collect customer details
   // For now, we'll use placeholder values
+  // Validate packageData before creating order
+  if (!packageData || !packageData.id) {
+    console.error('Invalid packageData for order creation:', packageData);
+    throw new Error('Invalid package data');
+  }
+  
+  if (!userData || !userData.uid) {
+    console.error('Invalid userData for order creation:', userData);
+    throw new Error('Invalid user data');
+  }
+  
   const orderData = {
     customer_mobile: userData.phone || '',
     customer_name: userData.name || 'Customer',
@@ -168,11 +179,13 @@ export const handlePackagePayment = async (packageData, userData, referralCode =
     user_id: userData.uid
   }
   
+  console.log('Creating Pay0Shop order with data:', orderData, 'referralCode:', referralCode);
   const result = await createPay0ShopOrder(orderData, referralCode)
   
   // Note: With form submission, we don't get a response back to handle
   // The browser will redirect to Pay0.Shop automatically
   if (!result.status) {
+    console.warn('Failed to initiate Pay0Shop order:', result.message);
     // Show error message only if we failed to initiate the process
     alert(result.message || 'Failed to initiate payment. Please try again.')
   }

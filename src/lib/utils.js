@@ -32,10 +32,20 @@ export const fetchPackages = async () => {
  */
 export const fetchPackageById = async (packageId) => {
   try {
+    // Validate input
+    if (!packageId) {
+      console.warn('fetchPackageById: Missing packageId');
+      return null;
+    }
+    
+    console.log('Fetching package with ID:', packageId);
     const packageDoc = await getDoc(doc(db, 'packages', packageId));
     if (packageDoc.exists()) {
-      return { id: packageDoc.id, ...packageDoc.data() };
+      const packageData = { id: packageDoc.id, ...packageDoc.data() };
+      console.log('Successfully fetched package:', packageData);
+      return packageData;
     }
+    console.warn('Package not found with ID:', packageId);
     return null;
   } catch (error) {
     console.error(`Error fetching package ${packageId} from Firestore:`, error);
@@ -50,12 +60,20 @@ export const fetchPackageById = async (packageId) => {
  */
 export const fetchCoursesByPackageId = async (packageId) => {
   try {
+    // Validate input
+    if (!packageId) {
+      console.warn('fetchCoursesByPackageId: Missing packageId');
+      return [];
+    }
+    
+    console.log('Fetching courses for package ID:', packageId);
     const q = query(collection(db, 'courses'), where('packageId', '==', packageId));
     const querySnapshot = await getDocs(q);
     const courses = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    console.log(`Found ${courses.length} courses for package ${packageId}:`, courses);
     return courses;
   } catch (error) {
     console.error(`Error fetching courses for package ${packageId} from Firestore:`, error);
@@ -208,15 +226,19 @@ export const checkUserPurchase = async (packageId, userId) => {
   try {
     // Validate inputs
     if (!packageId || !userId) {
-      console.warn('checkUserPurchase: Missing packageId or userId');
+      console.warn('checkUserPurchase: Missing packageId or userId', { packageId, userId });
       return false;
     }
 
+    console.log('Checking purchase status for package:', packageId, 'user:', userId);
+    
     // Check localStorage first for quick response
     const localStorageKey = `purchase_${packageId}_${userId}`;
     const cachedResult = localStorage.getItem(localStorageKey);
     if (cachedResult !== null) {
-      return cachedResult === 'true';
+      const result = cachedResult === 'true';
+      console.log('Purchase status (from cache) for package', packageId, 'user', userId, ':', result);
+      return result;
     }
 
     const q = query(
@@ -229,12 +251,14 @@ export const checkUserPurchase = async (packageId, userId) => {
     const querySnapshot = await getDocs(q);
     const hasPurchased = !querySnapshot.empty;
     
+    console.log('Purchase status (from DB) for package', packageId, 'user', userId, ':', hasPurchased);
+    
     // Cache the result in localStorage
     localStorage.setItem(localStorageKey, hasPurchased.toString());
     
     return hasPurchased;
   } catch (error) {
-    console.error('Error checking user purchase:', error);
+    console.error('Error checking user purchase for package', packageId, 'user', userId, ':', error);
     return false;
   }
 };
@@ -251,7 +275,8 @@ export const fetchUserPurchases = async (userId) => {
       console.warn('fetchUserPurchases: Missing userId');
       return [];
     }
-
+    
+    console.log('Fetching purchases for user:', userId);
     const q = query(
       collection(db, 'purchases'),
       where('student_uid', '==', userId),
@@ -259,14 +284,19 @@ export const fetchUserPurchases = async (userId) => {
     );
     
     const querySnapshot = await getDocs(q);
-    const purchases = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const purchases = querySnapshot.docs.map(doc => {
+      const purchaseData = {
+        id: doc.id,
+        ...doc.data()
+      };
+      console.log('Found purchase:', purchaseData.id, 'package_id:', purchaseData.package_id);
+      return purchaseData;
+    });
     
+    console.log('Total purchases found for user', userId, ':', purchases.length);
     return purchases;
   } catch (error) {
-    console.error('Error fetching user purchases:', error);
+    console.error('Error fetching user purchases for user', userId, ':', error);
     return [];
   }
 };

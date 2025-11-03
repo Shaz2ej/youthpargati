@@ -10,6 +10,7 @@ import { fetchPackageById, fetchPackageCoursesWithVideos, checkUserPurchase } fr
 
 function PackageCourses() {
   const { id } = useParams()
+  console.log('PackageCourses component loaded with package ID:', id);
   const navigate = useNavigate()
   const { user, isLoadingAuth } = useAuth()
   const [coursesWithVideos, setCoursesWithVideos] = useState([])
@@ -88,19 +89,22 @@ function PackageCourses() {
   // Check if user has purchased this package
   useEffect(() => {
     const checkPurchaseStatus = async () => {
+      console.log('Checking purchase status for package:', id, 'user:', user?.uid);
       if (user && user.uid && id) {
         try {
           const purchased = await checkUserPurchase(id, user.uid);
+          console.log('Purchase check result for package', id, ':', purchased);
           setHasPurchased(purchased);
           
           // Store purchase status in localStorage for persistence
           localStorage.setItem(`purchase_${id}_${user.uid}`, purchased.toString());
         } catch (err) {
-          console.error('Error checking purchase status:', err);
+          console.error('Error checking purchase status for package', id, ':', err);
         } finally {
           setCheckingPurchase(false);
         }
       } else {
+        console.log('Skipping purchase check - missing user or package ID', { user: !!user, userId: user?.uid, packageId: id });
         setCheckingPurchase(false);
       }
     };
@@ -109,14 +113,17 @@ function PackageCourses() {
     
     // Listen for localStorage changes to update UI after payment
     const handleStorageChange = (e) => {
+      console.log('Storage change event for key:', e.key, 'package:', id);
       if (e.key === 'lastPurchase' && id) {
         // Add safeguard check before calling checkUserPurchase
         if (!user || !user.uid) {
           console.warn("User not loaded yet, waiting...");
           return;
         }
+        console.log('Re-checking purchase status after storage change for package:', id, 'user:', user.uid);
         // Re-check purchase status when localStorage is updated
         checkUserPurchase(id, user.uid).then(purchased => {
+          console.log('Updated purchase status for package', id, ':', purchased);
           setHasPurchased(purchased);
           // Update localStorage with new status
           localStorage.setItem(`purchase_${id}_${user.uid}`, purchased.toString());
