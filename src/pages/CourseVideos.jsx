@@ -6,6 +6,9 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { ArrowLeft, Play, Clock, BookOpen, Lock } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext.jsx'
 import { fetchCoursesByPackageId, checkUserPurchase, fetchPackageById } from '@/lib/utils.js'
+// Add Firestore imports
+import { db } from '@/lib/firebase.js'
+import { collection, getDocs } from 'firebase/firestore'
 
 function CourseVideos() {
   const { id } = useParams()
@@ -99,33 +102,27 @@ function CourseVideos() {
 
         setCourseInfo(courseData);
 
-        // Fallback sample videos
-        const videosData = [
-          {
-            id: 'sample-video-1',
-            title: 'YouTube Embed Example',
-            description: 'Sample YouTube video using iframe embed code.',
-            video_embed: '<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>'
-          },
-          {
-            id: 'sample-video-2',
-            title: 'Vimeo Embed Example',
-            description: 'Sample Vimeo video using iframe embed code.',
-            video_embed: '<iframe src="https://player.vimeo.com/video/90509568" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
-          },
-          {
-            id: 'sample-video-3',
-            title: 'Odysee Embed Example',
-            description: 'Sample Odysee video using iframe embed code.',
-            video_embed: '<iframe id="lbry-iframe" src="https://odysee.com/$/embed/@samtime:1/programming-on-windows-is-torture:5" allowfullscreen width="560" height="315"></iframe>'
-          }
-        ];
-
-        setVideos(videosData);
+        // NEW: Fetch videos from chapters subcollection instead of course_videos collection
+        console.log(`Fetching chapters for course: ${id}`);
+        const chaptersRef = collection(db, "courses", id, "chapters");
+        const chaptersSnapshot = await getDocs(chaptersRef);
         
-        // Set the first video as current if available
-        if (videosData && videosData.length > 0) {
-          setCurrentVideo(videosData[0]);
+        if (chaptersSnapshot.empty) {
+          console.log(`No chapters found for course: ${id}`);
+          setVideos([]);
+        } else {
+          const chaptersData = chaptersSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          console.log(`Fetched chapters for course: ${id}`);
+          setVideos(chaptersData);
+          
+          // Set the first video as current if available
+          if (chaptersData && chaptersData.length > 0) {
+            setCurrentVideo(chaptersData[0]);
+          }
         }
 
       } catch (err) {
@@ -321,7 +318,7 @@ function CourseVideos() {
                 {videos.length === 0 ? (
                   <div className="text-center py-8">
                     <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No videos available for this course.</p>
+                    <p className="text-gray-500">No lessons found for this course yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-96 overflow-y-auto">
