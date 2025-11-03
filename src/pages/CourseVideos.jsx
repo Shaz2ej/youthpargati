@@ -102,7 +102,7 @@ function CourseVideos() {
 
         setCourseInfo(courseData);
 
-        // NEW: Fetch videos from chapters subcollection instead of course_videos collection
+        // Fetch videos from chapters subcollection instead of course_videos collection
         console.log(`Fetching chapters for course: ${id}`);
         const chaptersRef = collection(db, "courses", id, "chapters");
         const chaptersSnapshot = await getDocs(chaptersRef);
@@ -116,7 +116,8 @@ function CourseVideos() {
             ...doc.data()
           }));
           
-          console.log(`Fetched chapters for course: ${id}`);
+          // Updated to match requirement: Log "Fetched chapters:" with the data
+          console.log("Fetched chapters:", chaptersData);
           setVideos(chaptersData);
           
           // Set the first video as current if available
