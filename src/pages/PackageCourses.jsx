@@ -109,7 +109,12 @@ function PackageCourses() {
     
     // Listen for localStorage changes to update UI after payment
     const handleStorageChange = (e) => {
-      if (e.key === 'lastPurchase' && user && user.uid && id) {
+      if (e.key === 'lastPurchase' && id) {
+        // Add safeguard check before calling checkUserPurchase
+        if (!user || !user.uid) {
+          console.warn("User not loaded yet, waiting...");
+          return;
+        }
         // Re-check purchase status when localStorage is updated
         checkUserPurchase(id, user.uid).then(purchased => {
           setHasPurchased(purchased);

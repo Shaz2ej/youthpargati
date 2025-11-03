@@ -52,6 +52,12 @@ function CourseVideos() {
             if (courseInPackage) {
               foundPackage = pkg;
               // Check if user has purchased this package
+              // Add safeguard check before calling checkUserPurchase
+              if (!user || !user.uid) {
+                console.warn("User not loaded yet, waiting...");
+                setCheckingAccess(false);
+                return;
+              }
               const purchased = await checkUserPurchase(pkg.id, user.uid);
               if (purchased) {
                 hasAccessToCourse = true;
