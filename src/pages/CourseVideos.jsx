@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge.jsx'
 import { ArrowLeft, Play, Clock, BookOpen, Lock } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext.jsx'
-import { fetchCoursesByPackageId, checkUserPurchase, fetchPackageById } from '@/lib/utils.js'
+import { fetchCoursesByPackageId, checkUserPurchase, fetchPackageById, fetchUserPurchases } from '@/lib/utils.js'
 // Add Firestore imports
 import { db } from '@/lib/firebase.js'
 import { collection, getDocs } from 'firebase/firestore'
@@ -34,44 +34,55 @@ function CourseVideos() {
       }
 
       try {
-        // First, we need to find which package this course belongs to
-        // This is a simplified approach - in a real app, you might store packageId directly on the course
-        const allPackages = [
-          { id: 'basic', title: 'Basic Package' },
-          { id: 'elite', title: 'Elite Package' },
-          { id: 'warriors', title: 'Warriors Package' }
-        ];
+        // First, fetch user's purchases to get actual package IDs
+        console.log('Fetching user purchases for access check');
+        const userPurchases = await fetchUserPurchases(user.uid);
+        console.log('User purchases:', userPurchases);
+        
+        // Extract package IDs from purchases
+        const purchasedPackageIds = userPurchases
+          .map(purchase => purchase.package_id)
+          .filter(Boolean); // Remove any falsy values
+        
+        console.log('Purchased package IDs:', purchasedPackageIds);
+        
+        if (purchasedPackageIds.length === 0) {
+          console.log('User has no purchased packages');
+          setHasAccess(false);
+          setCheckingAccess(false);
+          return;
+        }
 
         let hasAccessToCourse = false;
         let foundPackage = null;
 
-        // Check each package to see if this course belongs to it and if user has purchased it
-        for (const pkg of allPackages) {
+        // Check each purchased package to see if this course belongs to it
+        for (const packageId of purchasedPackageIds) {
           try {
-            console.log('Checking package:', pkg.id, 'for course:', id);
-            const coursesInPackage = await fetchCoursesByPackageId(pkg.id);
-            const courseInPackage = coursesInPackage.find(course => course.id === id);
+            console.log('Checking purchased package:', packageId, 'for course:', id);
             
-            if (courseInPackage) {
-              console.log('Found course', id, 'in package', pkg.id);
-              foundPackage = pkg;
-              // Check if user has purchased this package
-              // Add safeguard check before calling checkUserPurchase
-              if (!user || !user.uid) {
-                console.warn("User not loaded yet, waiting...");
-                setCheckingAccess(false);
-                return;
-              }
-              const purchased = await checkUserPurchase(pkg.id, user.uid);
-              console.log('User purchase status for package', pkg.id, ':', purchased);
-              if (purchased) {
-                hasAccessToCourse = true;
-                console.log('User has access to course', id, 'through package', pkg.id);
-                break;
-              }
+            // Fetch the actual package details
+            const packageDetails = await fetchPackageById(packageId);
+            if (!packageDetails) {
+              console.warn('Package details not found for package ID:', packageId);
+              continue;
+            }
+            
+            console.log('Package details:', packageDetails);
+            
+            // Check if this course is in this package
+            const courseIdsInPackage = packageDetails.courses || [];
+            console.log('Course IDs in package:', courseIdsInPackage);
+            
+            if (courseIdsInPackage.includes(id)) {
+              console.log('Found course', id, 'in purchased package', packageId);
+              foundPackage = packageDetails;
+              hasAccessToCourse = true;
+              console.log('User has access to course', id, 'through purchased package', packageId);
+              break;
             }
           } catch (err) {
-            console.warn(`Error checking package ${pkg.id}:`, err);
+            console.warn(`Error checking purchased package ${packageId}:`, err);
           }
         }
 
