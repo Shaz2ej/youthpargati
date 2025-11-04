@@ -18,7 +18,6 @@ function PackageCourses() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [processing, setProcessing] = useState(false)
-  const [referralCode, setReferralCode] = useState('')
   const [hasPurchased, setHasPurchased] = useState(false)
   const [checkingPurchase, setCheckingPurchase] = useState(true)
 
@@ -68,16 +67,13 @@ function PackageCourses() {
       
       // Store package info in session storage before payment
       sessionStorage.setItem('checkoutPackage', JSON.stringify(packageInfo));
-      if (referralCode) {
-        sessionStorage.setItem('referralCode', referralCode);
-      }
       
-      // Process payment with referral code if provided
+      // Process payment without referral code
       await handlePackagePayment(packageInfo, {
         uid: user.uid,  // Fix: Use user.uid instead of user.id
         name: studentData.name,
         phone: studentData.phone
-      }, referralCode)
+      })
     } catch (error) {
       console.error('Payment error:', error)
       alert('Failed to process payment. Please try again.')
@@ -228,31 +224,6 @@ function PackageCourses() {
             <p className="text-xl text-blue-100 mb-2">
               {packageInfo?.description || 'Explore the courses in this package'}
             </p>
-            {packageInfo?.price && (
-              <div className="text-2xl font-bold text-yellow-300">
-                ₹{packageInfo.price}
-              </div>
-            )}
-            
-            {/* Referral code input */}
-            <div className="max-w-md mx-auto mt-6">
-              <div className="flex">
-                <input 
-                  type="text" 
-                  placeholder="Referral code (optional)" 
-                  value={referralCode}
-                  onChange={(e) => setReferralCode(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 rounded-r-none text-gray-800"
-                />
-                <Button 
-                  variant="outline" 
-                  onClick={() => setReferralCode('')}
-                  className="rounded-l-none border-l-0 bg-white text-gray-800 hover:bg-gray-100"
-                >
-                  Clear
-                </Button>
-              </div>
-            </div>
             
             <div className="mt-6">
               {hasPurchased ? (
