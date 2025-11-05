@@ -176,7 +176,7 @@ function Checkout() {
                   </div>
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
                     <span>Total:</span>
-                    <span>₹{packageData.price + Math.round(packageData.price * 0.18)}</span>
+                    <span>₹{packageData.price}</span>
                   </div>
                 </div>
               </div>
@@ -232,7 +232,7 @@ function Checkout() {
                 ) : (
                   <>
                     <CreditCard className="h-5 w-5 mr-2" />
-                    Pay ₹{packageData.price + Math.round(packageData.price * 0.18)}
+                    Pay ₹{packageData.price}
                   </>
                 )}
               </Button>
