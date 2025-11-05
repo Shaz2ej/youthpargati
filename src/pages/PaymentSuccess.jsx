@@ -3,18 +3,18 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from '@/lib/firebase';
-import { useAuth } from '@/context/AuthContext';
+import { getPackageCommission } from '@/lib/packageCommissions';
 
 function PaymentSuccess() {
-  const { user } = useAuth();
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [packageData, setPackageData] = useState(null)
+  const [referrerCommission, setReferrerCommission] = useState(0)
 
-  // Function to create purchase record in Firestore
+  // Function to create purchase record in Firestore and handle referral commissions
   const createPurchaseRecord = async (packageData, user) => {
     if (!user || !user.uid) throw new Error("User not authenticated");
     
@@ -23,33 +23,98 @@ function PaymentSuccess() {
       throw new Error("Invalid package data");
     }
     
+    // Get referral code from session storage
+    const referralCode = sessionStorage.getItem('referralCode') || '';
+    
+    // Create purchase record in Firestore
     const purchaseData = {
-      amount: packageData.price,
+      student_uid: user.uid,
       package_id: packageData.id,
-      payment_status: "success",
+      referred_by: referralCode || "",
       purchase_date: serverTimestamp(),
-      student_uid: user.uid  // Using student_uid as requested
+      payment_status: "success"
     };
     
     console.log('Creating purchase record for package:', packageData.id, 'user:', user.uid, 'data:', purchaseData);
     
-    const docRef = await addDoc(collection(db, "purchases"), purchaseData);
-    console.log('Purchase record created with ID:', docRef.id);
+    const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
+    console.log('Purchase record created with ID:', purchaseDocRef.id);
+    
+    // Update buyer's student document
+    const studentRef = doc(db, "students", user.uid);
+    await updateDoc(studentRef, {
+      purchased_package: packageData.id,
+      referred_by: referralCode || "",
+    });
+    
+    // Handle referral commission if referral code was provided
+    let commissionEarned = 0;
+    if (referralCode) {
+      try {
+        // Find referrer by referral code
+        const referrerQuery = query(collection(db, "students"), where("referral_code", "==", referralCode));
+        const referrerSnapshot = await getDocs(referrerQuery);
+        
+        if (!referrerSnapshot.empty) {
+          const referrerDoc = referrerSnapshot.docs[0];
+          const referrerData = referrerDoc.data();
+          const referrerRef = referrerDoc.ref;
+          
+          // Get referrer's purchased package
+          const referrerPackageId = referrerData.purchased_package;
+          
+          if (referrerPackageId) {
+            // Get the commission amount from the referrer's package using our mapping
+            const referrerCommission = getPackageCommission(referrerPackageId);
+            
+            if (referrerCommission > 0) {
+              // Update referrer's wallet balance and total earned
+              await updateDoc(referrerRef, {
+                wallet_balance: increment(referrerCommission),
+                total_earned: increment(referrerCommission),
+              });
+              
+              commissionEarned = referrerCommission;
+              setReferrerCommission(referrerCommission);
+              
+              // Update the purchase record with the commission amount
+              await updateDoc(purchaseDocRef, {
+                commission: referrerCommission
+              });
+              
+              console.log(`Referrer ${referrerData.name} earned commission: ₹${referrerCommission}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error processing referral commission:', err);
+        // Don't fail the purchase if referral processing fails
+      }
+    }
     
     // Store purchase info in localStorage to trigger UI updates
     localStorage.setItem('lastPurchase', JSON.stringify({
       packageId: packageData.id,
       userId: user.uid,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      referrerCommission: commissionEarned
     }));
     
-    return docRef.id;
+    return purchaseDocRef.id;
   };
 
   useEffect(() => {
     // Process payment and create purchase record
     const processPayment = async () => {
       try {
+        // Get user from localStorage (since we don't have AuthContext here)
+        const storedUser = localStorage.getItem('user');
+        const user = storedUser ? JSON.parse(storedUser) : null;
+        
+        if (!user) {
+          throw new Error("User not found");
+        }
+        
         // Get package data from session storage
         const storedPackage = sessionStorage.getItem('checkoutPackage');
         console.log('Stored package for purchase record:', storedPackage);
@@ -79,9 +144,9 @@ function PaymentSuccess() {
       }
     }
     
-    console.log('PaymentSuccess component loaded, processing payment for user:', user?.uid);
+    console.log('PaymentSuccess component loaded');
     processPayment()
-  }, [user])
+  }, [])
 
   const handleViewCourse = () => {
     // Redirect to the package courses page
@@ -197,6 +262,11 @@ function PaymentSuccess() {
                 <p className="text-green-800 mt-2">
                   Your course access has been unlocked! You can now view your courses.
                 </p>
+                {referrerCommission > 0 && (
+                  <p className="text-green-800 mt-2">
+                    Your referrer has received ₹{referrerCommission} as commission.
+                  </p>
+                )}
               </div>
               
               <div className="flex flex-col gap-3 mt-6">

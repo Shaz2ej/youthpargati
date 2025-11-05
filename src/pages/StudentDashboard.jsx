@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
-import { doc, getDoc, updateDoc, serverTimestamp, addDoc, collection } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -26,7 +26,8 @@ export default function StudentDashboard() {
     day20_earning: 0,
     day30_earning: 0,
     referral_code: "",
-    referred_by: ""
+    referred_by: "",
+    purchased_package: ""
   });
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [withdrawalMethod, setWithdrawalMethod] = useState("UPI");
@@ -63,7 +64,8 @@ export default function StudentDashboard() {
           day20_earning: data.day20_earning || 0,
           day30_earning: data.day30_earning || 0,
           referral_code: data.referral_code || "",
-          referred_by: data.referred_by || ""
+          referred_by: data.referred_by || "",
+          purchased_package: data.purchased_package || ""
         });
         
         // Check if profile is already completed
@@ -523,6 +525,13 @@ export default function StudentDashboard() {
                   <div className="p-4 bg-green-50 rounded-lg">
                     <p className="text-sm text-gray-600">Referred By</p>
                     <p className="font-medium">{walletData.referred_by}</p>
+                  </div>
+                )}
+                
+                {walletData.purchased_package && (
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Your Package</p>
+                    <p className="font-medium capitalize">{walletData.purchased_package}</p>
                   </div>
                 )}
               </CardContent>
