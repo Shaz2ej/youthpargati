@@ -163,9 +163,9 @@ export const fetchVideosByCourseId = async (courseId) => {
   try {
     // ✅ Fetch chapters from subcollection under each course
     // WARNING: Database may use lowercase 'chapters' - verify with actual database structure
-    const chaptersRef = collection(db, "courses", courseId, "Chapters"); // use exact case as in Firestore
+    const chaptersRef = collection(db, "courses", courseId, "chapters"); // use exact case as in Firestore
 
-    console.log("Fetching path:", `courses/${courseId}/Chapters`);
+    console.log("Fetching path:", `courses/${courseId}/chapters`);
 
     const chaptersSnapshot = await getDocs(chaptersRef);
     const fetchedChapters = chaptersSnapshot.docs.map(doc => ({
@@ -214,6 +214,35 @@ export const fetchPackageCoursesWithVideos = async (selectedPackage) => {
   } catch (error) {
     console.error("Error fetching package courses with videos:", error);
     return [];
+  }
+};
+
+/**
+ * Fetch package commission amount by package ID from Firestore
+ * @param {string} packageId - The ID of the package
+ * @returns {Promise<number>} Commission amount for the package
+ */
+export const fetchPackageCommission = async (packageId) => {
+  try {
+    // Validate input
+    if (!packageId) {
+      console.warn('fetchPackageCommission: Missing packageId');
+      return 0;
+    }
+    
+    console.log('Fetching commission for package ID:', packageId);
+    const packageDoc = await getDoc(doc(db, 'packages', packageId));
+    if (packageDoc.exists()) {
+      const packageData = packageDoc.data();
+      const commission = packageData.commission || 0;
+      console.log(`Commission for package ${packageId}: ₹${commission}`);
+      return commission;
+    }
+    console.warn('Package not found with ID:', packageId);
+    return 0;
+  } catch (error) {
+    console.error(`Error fetching commission for package ${packageId} from Firestore:`, error);
+    return 0;
   }
 };
 

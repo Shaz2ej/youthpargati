@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from '@/lib/firebase';
-import { getPackageCommission } from '@/lib/packageCommissions';
+import { fetchPackageCommission } from '@/lib/utils';
 
 function PaymentSuccess() {
   const navigate = useNavigate()
@@ -72,8 +72,8 @@ function PaymentSuccess() {
           const referrerPackageId = referrerData.purchased_package;
           
           if (referrerPackageId) {
-            // Get the commission amount from the referrer's package using our mapping
-            const referrerCommission = getPackageCommission(referrerPackageId);
+            // Get the commission amount from the referrer's package by fetching from Firestore
+            const referrerCommission = await fetchPackageCommission(referrerPackageId);
             
             if (referrerCommission > 0) {
               // Update referrer's wallet balance and total earned
