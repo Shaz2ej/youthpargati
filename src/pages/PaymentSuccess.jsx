@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
 import { db } from '@/lib/firebase';
-import { fetchPackageCommission } from '@/lib/utils';
+import { fetchPackageCommission, fetchPackageCommissionUnowned, checkUserPurchase } from '@/lib/utils';
 
 function PaymentSuccess() {
   const navigate = useNavigate()
@@ -26,29 +26,10 @@ function PaymentSuccess() {
     // Get referral code from session storage
     const referralCode = sessionStorage.getItem('referralCode') || '';
     
-    // Create purchase record in Firestore
-    const purchaseData = {
-      student_uid: user.uid,
-      package_id: packageData.id,
-      referred_by: referralCode || "",
-      purchase_date: serverTimestamp(),
-      payment_status: "success"
-    };
-    
-    console.log('Creating purchase record for package:', packageData.id, 'user:', user.uid, 'data:', purchaseData);
-    
-    const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
-    console.log('Purchase record created with ID:', purchaseDocRef.id);
-    
-    // Update buyer's student document with purchased package
-    const studentRef = doc(db, "students", user.uid);
-    await updateDoc(studentRef, {
-      purchased_package: packageData.id,
-    });
-    
     // Handle referral commission if referral code was provided
     let commissionEarned = 0;
     let referrerUid = null;
+    let commissionType = ""; // "owned" or "unowned"
     
     if (referralCode) {
       try {
@@ -62,18 +43,13 @@ function PaymentSuccess() {
           const referrerRef = referrerDoc.ref;
           referrerUid = referrerDoc.id;
           
-          // Update buyer's document with who referred them
-          await updateDoc(studentRef, {
-            referred_by: referralCode,
-            referrer_uid: referrerUid
-          });
+          // Check if referrer has purchased the same package
+          const hasPurchasedSamePackage = await checkUserPurchase(packageData.id, referrerUid);
           
-          // Get referrer's purchased package
-          const referrerPackageId = referrerData.purchased_package;
-          
-          if (referrerPackageId) {
-            // Get the commission amount from the referrer's package by fetching from Firestore
-            const referrerCommission = await fetchPackageCommission(referrerPackageId);
+          if (hasPurchasedSamePackage) {
+            // Referrer has purchased the same package - use owned commission
+            commissionType = "owned";
+            const referrerCommission = await fetchPackageCommission(packageData.id);
             
             if (referrerCommission > 0) {
               // Update referrer's wallet balance and total earned
@@ -85,12 +61,24 @@ function PaymentSuccess() {
               commissionEarned = referrerCommission;
               setReferrerCommission(referrerCommission);
               
-              // Update the purchase record with the commission amount
-              await updateDoc(purchaseDocRef, {
-                commission: referrerCommission
+              console.log(`Referrer ${referrerData.name} earned owned commission: ₹${referrerCommission}`);
+            }
+          } else {
+            // Referrer has not purchased the same package - use unowned commission
+            commissionType = "unowned";
+            const referrerCommission = await fetchPackageCommissionUnowned(packageData.id);
+            
+            if (referrerCommission > 0) {
+              // Update referrer's wallet balance and total earned
+              await updateDoc(referrerRef, {
+                wallet_balance: increment(referrerCommission),
+                total_earned: increment(referrerCommission),
               });
               
-              console.log(`Referrer ${referrerData.name} earned commission: ₹${referrerCommission}`);
+              commissionEarned = referrerCommission;
+              setReferrerCommission(referrerCommission);
+              
+              console.log(`Referrer ${referrerData.name} earned unowned commission: ₹${referrerCommission}`);
             }
           }
         }
@@ -98,6 +86,39 @@ function PaymentSuccess() {
         console.error('Error processing referral commission:', err);
         // Don't fail the purchase if referral processing fails
       }
+    }
+    
+    // Create purchase record in Firestore with all necessary referral and commission details
+    const purchaseData = {
+      student_uid: user.uid,
+      package_id: packageData.id,
+      package_name: packageData.name || packageData.title || "",
+      amount: packageData.price || 0,
+      payment_status: "success",
+      purchase_date: serverTimestamp(),
+      referral_code: referralCode || "",
+      referred_by: referrerUid || "",
+      commission_type: commissionType,
+      commission: commissionEarned
+    };
+    
+    console.log('Creating purchase record for package:', packageData.id, 'user:', user.uid, 'data:', purchaseData);
+    
+    const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
+    console.log('Purchase record created with ID:', purchaseDocRef.id);
+    
+    // Update buyer's student document with purchased package
+    const studentRef = doc(db, "students", user.uid);
+    await updateDoc(studentRef, {
+      purchased_package: packageData.id,
+    });
+    
+    // Update buyer's document with who referred them if referral code was provided
+    if (referralCode && referrerUid) {
+      await updateDoc(studentRef, {
+        referred_by: referralCode,
+        referrer_uid: referrerUid
+      });
     }
     
     // Store purchase info in localStorage to trigger UI updates

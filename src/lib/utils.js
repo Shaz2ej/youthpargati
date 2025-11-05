@@ -218,35 +218,6 @@ export const fetchPackageCoursesWithVideos = async (selectedPackage) => {
 };
 
 /**
- * Fetch package commission amount by package ID from Firestore
- * @param {string} packageId - The ID of the package
- * @returns {Promise<number>} Commission amount for the package
- */
-export const fetchPackageCommission = async (packageId) => {
-  try {
-    // Validate input
-    if (!packageId) {
-      console.warn('fetchPackageCommission: Missing packageId');
-      return 0;
-    }
-    
-    console.log('Fetching commission for package ID:', packageId);
-    const packageDoc = await getDoc(doc(db, 'packages', packageId));
-    if (packageDoc.exists()) {
-      const packageData = packageDoc.data();
-      const commission = packageData.commission || 0;
-      console.log(`Commission for package ${packageId}: ₹${commission}`);
-      return commission;
-    }
-    console.warn('Package not found with ID:', packageId);
-    return 0;
-  } catch (error) {
-    console.error(`Error fetching commission for package ${packageId} from Firestore:`, error);
-    return 0;
-  }
-};
-
-/**
  * Check if a user has purchased a specific package
  * @param {string} packageId - The ID of the package
  * @param {string} userId - The user ID
@@ -290,6 +261,64 @@ export const checkUserPurchase = async (packageId, userId) => {
   } catch (error) {
     console.error('Error checking user purchase for package', packageId, 'user', userId, ':', error);
     return false;
+  }
+};
+
+/**
+ * Fetch package commission amount by package ID from Firestore
+ * @param {string} packageId - The ID of the package
+ * @returns {Promise<number>} Commission amount for the package
+ */
+export const fetchPackageCommission = async (packageId) => {
+  try {
+    // Validate input
+    if (!packageId) {
+      console.warn('fetchPackageCommission: Missing packageId');
+      return 0;
+    }
+    
+    console.log('Fetching commission for package ID:', packageId);
+    const packageDoc = await getDoc(doc(db, 'packages', packageId));
+    if (packageDoc.exists()) {
+      const packageData = packageDoc.data();
+      const commission = packageData.commission || 0;
+      console.log(`Commission for package ${packageId}: ₹${commission}`);
+      return commission;
+    }
+    console.warn('Package not found with ID:', packageId);
+    return 0;
+  } catch (error) {
+    console.error(`Error fetching commission for package ${packageId} from Firestore:`, error);
+    return 0;
+  }
+};
+
+/**
+ * Fetch package commission for unowned packages from Firestore
+ * @param {string} packageId - The ID of the package
+ * @returns {Promise<number>} Commission amount for unowned packages
+ */
+export const fetchPackageCommissionUnowned = async (packageId) => {
+  try {
+    // Validate input
+    if (!packageId) {
+      console.warn('fetchPackageCommissionUnowned: Missing packageId');
+      return 0;
+    }
+    
+    console.log('Fetching unowned commission for package ID:', packageId);
+    const packageDoc = await getDoc(doc(db, 'packages', packageId));
+    if (packageDoc.exists()) {
+      const packageData = packageDoc.data();
+      const commission = packageData.commission_unowned || 0;
+      console.log(`Unowned commission for package ${packageId}: ₹${commission}`);
+      return commission;
+    }
+    console.warn('Package not found with ID:', packageId);
+    return 0;
+  } catch (error) {
+    console.error(`Error fetching unowned commission for package ${packageId} from Firestore:`, error);
+    return 0;
   }
 };
 
