@@ -269,9 +269,20 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-orange-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-black text-center mb-8 text-blue-600">
-          Welcome, {userData?.name || "Student"} 👋
-        </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-black text-blue-600">
+            Welcome, {userData?.name || "Student"} 👋
+          </h1>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigate('/referral-dashboard')}
+              variant="outline"
+              className="bg-blue-100 hover:bg-blue-200 text-blue-700"
+            >
+              Referral Dashboard
+            </Button>
+          </div>
+        </div>
 
         {(!profileCompleted) ? (
           <Card className="bg-white shadow-2xl border rounded-2xl mx-auto">

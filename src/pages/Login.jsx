@@ -36,6 +36,7 @@ const Login = () => {
         name: name, // Use the name from input field
         email: user.email,
         createdAt: serverTimestamp(),
+        referral_codes: {} // Initialize empty referral codes object
       });
       console.log("Student document created successfully.");
 

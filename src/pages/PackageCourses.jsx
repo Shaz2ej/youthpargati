@@ -203,16 +203,29 @@ function PackageCourses() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-orange-500 text-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <Button 
-            variant="outline" 
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20 mb-6"
-            asChild
-          >
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Link>
-          </Button>
+          <div className="flex justify-between items-center mb-6">
+            <Button 
+              variant="outline" 
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              asChild
+            >
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Link>
+            </Button>
+            
+            {/* Show referral dashboard link for logged-in users */}
+            {user && (
+              <Button 
+                onClick={() => navigate('/referral-dashboard')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                My Referrals
+              </Button>
+            )}
+          </div>
           
           <div className="text-center">
             {packageInfo?.name && (

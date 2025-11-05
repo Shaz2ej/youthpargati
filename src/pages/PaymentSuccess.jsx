@@ -40,15 +40,16 @@ function PaymentSuccess() {
     const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
     console.log('Purchase record created with ID:', purchaseDocRef.id);
     
-    // Update buyer's student document
+    // Update buyer's student document with purchased package
     const studentRef = doc(db, "students", user.uid);
     await updateDoc(studentRef, {
       purchased_package: packageData.id,
-      referred_by: referralCode || "",
     });
     
     // Handle referral commission if referral code was provided
     let commissionEarned = 0;
+    let referrerUid = null;
+    
     if (referralCode) {
       try {
         // Find referrer by referral code
@@ -59,6 +60,13 @@ function PaymentSuccess() {
           const referrerDoc = referrerSnapshot.docs[0];
           const referrerData = referrerDoc.data();
           const referrerRef = referrerDoc.ref;
+          referrerUid = referrerDoc.id;
+          
+          // Update buyer's document with who referred them
+          await updateDoc(studentRef, {
+            referred_by: referralCode,
+            referrer_uid: referrerUid
+          });
           
           // Get referrer's purchased package
           const referrerPackageId = referrerData.purchased_package;
