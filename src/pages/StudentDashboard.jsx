@@ -154,43 +154,46 @@ export default function StudentDashboard() {
     const user = auth.currentUser;
     if (!user) return;
 
+    // Get withdrawal amount from user input or use wallet balance
+    const amountInput = document.getElementById('amount');
+    const withdrawalAmount = amountInput ? parseFloat(amountInput.value) : walletData.wallet_balance;
+
     // Validation
-    if (walletData.wallet_balance < 200) {
-      alert("Minimum balance of ₹200 required for withdrawal.");
+    if (withdrawalAmount < 200) {
+      alert("Minimum withdrawal amount is ₹200.");
       return;
     }
 
     if (withdrawalMethod === "UPI" && !upiId.trim()) {
-      alert("Please enter your UPI ID.");
+      alert("Please provide valid UPI ID or bank account details.");
       return;
     }
 
     if (withdrawalMethod === "BANK" && (!accountNumber.trim() || !ifscCode.trim())) {
-      alert("Please enter both Account Number and IFSC Code.");
+      alert("Please provide valid UPI ID or bank account details.");
       return;
     }
 
     setWithdrawalLoading(true);
 
     try {
-      // Create withdrawal request document
+      // Create withdrawal request document in the "withdrawal" collection
       const withdrawalData = {
-        student_uid: user.uid,
-        amount: walletData.wallet_balance,
-        payment_method: withdrawalMethod,
+        user_id: user.uid,
+        withdrawal_amount: withdrawalAmount,
         status: "pending",
-        requestedAt: serverTimestamp()
+        withdrawal_time: serverTimestamp()
       };
 
       if (withdrawalMethod === "UPI") {
-        withdrawalData.upi_id = upiId.trim();
+        withdrawalData.UPI = upiId.trim();
       } else {
         withdrawalData.account_number = accountNumber.trim();
-        withdrawalData.ifsc_code = ifscCode.trim().toUpperCase();
+        withdrawalData.IFSC_code = ifscCode.trim().toUpperCase();
       }
 
-      // Add to withdraw_requests collection
-      await addDoc(collection(db, "withdraw_requests"), withdrawalData);
+      // Add to withdrawal collection (not withdraw_requests)
+      await addDoc(collection(db, "withdrawal"), withdrawalData);
 
       // Reset wallet balance to 0
       const docRef = doc(db, "students", user.uid);
@@ -210,7 +213,7 @@ export default function StudentDashboard() {
       setIfscCode("");
       setShowWithdrawalForm(false);
       
-      alert("Withdrawal request submitted successfully!");
+      alert("Your withdrawal request has been submitted successfully and is pending approval.");
     } catch (error) {
       console.error("Error submitting withdrawal request:", error);
       alert("Error submitting withdrawal request. Please try again.");
@@ -435,10 +438,25 @@ export default function StudentDashboard() {
                           <DialogHeader>
                             <DialogTitle>Withdraw Earnings</DialogTitle>
                             <DialogDescription>
-                              Request withdrawal for ₹{walletData.wallet_balance}. Minimum withdrawal amount is ₹200.
+                              Request withdrawal from your wallet balance. Minimum withdrawal amount is ₹200.
                             </DialogDescription>
                           </DialogHeader>
                           <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="amount" className="text-right">
+                                Amount
+                              </Label>
+                              <Input
+                                id="amount"
+                                type="number"
+                                min="200"
+                                max={walletData.wallet_balance}
+                                defaultValue={walletData.wallet_balance}
+                                className="col-span-3"
+                                placeholder="Withdrawal amount"
+                              />
+                            </div>
+                            
                             <div className="grid grid-cols-4 items-center gap-4">
                               <Label htmlFor="method" className="text-right">
                                 Method
