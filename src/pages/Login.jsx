@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, getDocs } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,32 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Generate referral code for a user and package
+  const generateReferralCode = (userName, packageName, packageId) => {
+    // Extract first part of username (max 3 characters)
+    const userPart = userName.split(' ')[0].toUpperCase().slice(0, 3);
+    
+    // Extract first part of package name (max 6 characters)
+    const packagePart = packageName.replace(/\s+/g, '_').toUpperCase().slice(0, 6);
+    
+    // Generate random 4-digit number
+    const randomNumber = Math.floor(1000 + Math.random() * 9000);
+    
+    return `${userPart}-${packagePart}-${randomNumber}`;
+  };
+
+  // Initialize referral codes for all packages
+  const initializeReferralCodes = async (userName, packages) => {
+    const referralCodes = {};
+    
+    packages.forEach(pkg => {
+      const codeKey = `${pkg.id}_code`;
+      referralCodes[codeKey] = generateReferralCode(userName, pkg.name || pkg.title || pkg.id, pkg.id);
+    });
+    
+    return referralCodes;
+  };
 
   const handleGoogleLogin = async () => {
     // Check if name input is not empty
@@ -29,14 +55,24 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
+      // Fetch all packages to initialize referral codes
+      const packagesSnapshot = await getDocs(collection(db, 'packages'));
+      const packages = packagesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Initialize referral codes for all packages
+      const referralCodes = await initializeReferralCodes(name, packages);
+
       console.log("Google login successful, creating student record...");
-      // Create student document with user info
+      // Create student document with user info and referral codes
       await setDoc(doc(db, "students", user.uid), {
         uid: user.uid,
         name: name, // Use the name from input field
         email: user.email,
         createdAt: serverTimestamp(),
-        referral_codes: {} // Initialize empty referral codes object
+        referral_codes: referralCodes // Initialize referral codes object with codes for all packages
       });
       console.log("Student document created successfully.");
 

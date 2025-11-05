@@ -18,11 +18,11 @@ export default function ReferralDashboard() {
 
   // Generate referral code for a user and package
   const generateReferralCode = (userName, packageName) => {
-    // Extract first part of username (max 6 characters)
-    const userPart = userName.split(' ')[0].substring(0, 6).toUpperCase();
+    // Extract first part of username (max 3 characters)
+    const userPart = userName.split(' ')[0].toUpperCase().slice(0, 3);
     
-    // Extract first part of package name (max 10 characters)
-    const packagePart = packageName.replace(/\s+/g, '_').substring(0, 10).toUpperCase();
+    // Extract first part of package name (max 6 characters)
+    const packagePart = packageName.replace(/\s+/g, '_').toUpperCase().slice(0, 6);
     
     // Generate random 4-digit number
     const randomNumber = Math.floor(1000 + Math.random() * 9000);
@@ -40,6 +40,7 @@ export default function ReferralDashboard() {
     
     if (userDoc.exists()) {
       userData = userDoc.data();
+      // Use existing referral_codes or initialize empty object
       updatedReferralCodes = userData.referral_codes || {};
     }
     
@@ -48,7 +49,7 @@ export default function ReferralDashboard() {
     allPackages.forEach(pkg => {
       const codeKey = `${pkg.id}_code`;
       if (!updatedReferralCodes[codeKey]) {
-        updatedReferralCodes[codeKey] = generateReferralCode(user.displayName || userData.name || "USER", pkg.title || pkg.name || pkg.id);
+        updatedReferralCodes[codeKey] = generateReferralCode(user.displayName || userData.name || "USER", pkg.name || pkg.title || pkg.id);
         needsUpdate = true;
       }
     });

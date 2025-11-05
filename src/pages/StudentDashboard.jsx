@@ -25,7 +25,7 @@ export default function StudentDashboard() {
     day10_earning: 0,
     day20_earning: 0,
     day30_earning: 0,
-    referral_code: "",
+    referral_codes: {}, // Use referral_codes map instead of single referral_code
     referred_by: "",
     purchased_package: ""
   });
@@ -63,7 +63,7 @@ export default function StudentDashboard() {
           day10_earning: data.day10_earning || 0,
           day20_earning: data.day20_earning || 0,
           day30_earning: data.day30_earning || 0,
-          referral_code: data.referral_code || "",
+          referral_codes: data.referral_codes || {}, // Use referral_codes map
           referred_by: data.referred_by || "",
           purchased_package: data.purchased_package || ""
         });
@@ -71,39 +71,12 @@ export default function StudentDashboard() {
         // Check if profile is already completed
         if (data.mobile_number && data.state) {
           setProfileCompleted(true);
-          
-          // Generate referral code if not present
-          if (!data.referral_code) {
-            await generateReferralCode(user.uid, data);
-          }
         }
       }
       setLoading(false);
     };
     fetchUser();
   }, [navigate]);
-
-  // Generate referral code for user
-  const generateReferralCode = async (uid, userData) => {
-    // Generate a unique referral code based on user name and random numbers
-    const baseName = userData.name.split(' ')[0].toUpperCase().substring(0, 4);
-    const randomNumber = Math.floor(1000 + Math.random() * 9000);
-    const referralCode = `${baseName}${randomNumber}`;
-    
-    // Update Firestore with the referral code
-    const docRef = doc(db, "students", uid);
-    await updateDoc(docRef, {
-      referral_code: referralCode
-    });
-    
-    // Update local state
-    setWalletData(prev => ({
-      ...prev,
-      referral_code: referralCode
-    }));
-    
-    return referralCode;
-  };
 
   // Fetch user purchases and package details
   useEffect(() => {
@@ -171,11 +144,6 @@ export default function StudentDashboard() {
     // Check if both fields are now present and set profileCompleted to true
     if (mobile && state) {
       setProfileCompleted(true);
-      
-      // Generate referral code if not present
-      if (!walletData.referral_code) {
-        await generateReferralCode(user.uid, { ...updatedUserData, mobile_number: mobile, state });
-      }
     }
     
     alert("Profile updated successfully!");
@@ -249,19 +217,6 @@ export default function StudentDashboard() {
     } finally {
       setWithdrawalLoading(false);
     }
-  };
-
-  // Copy referral code to clipboard
-  const copyReferralCode = () => {
-    navigator.clipboard.writeText(walletData.referral_code);
-    alert("Referral code copied to clipboard!");
-  };
-
-  // Share referral code via WhatsApp
-  const shareViaWhatsApp = () => {
-    const message = `Join this course and earn with my referral code ${walletData.referral_code}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   if (loading) return <p>Loading dashboard...</p>;
@@ -562,8 +517,6 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
             </div>
-
-
 
             {/* Profile Section */}
             <Card className="bg-white shadow-2xl border rounded-2xl">
