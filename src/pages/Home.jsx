@@ -163,19 +163,6 @@ function Home() {
             Learn digital skills and build your empire with confidence.
           </p>
           
-          {/* Show referral dashboard link for logged-in users */}
-          {user && (
-            <div className="mb-6">
-              <Button 
-                onClick={() => navigate('/referral-dashboard')}
-                variant="outline"
-                className="bg-white/20 hover:bg-white/30 text-white border-white"
-              >
-                My Referral Dashboard
-              </Button>
-            </div>
-          )}
-          
           {/* Motivational Overlay */}
           <StartJourneyButton />
         </div>
