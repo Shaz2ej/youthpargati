@@ -509,44 +509,19 @@ export default function StudentDashboard() {
             </div>
 
             {/* Referral Section */}
-            <Card className="bg-white shadow-2xl border rounded-2xl">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl font-black text-blue-600">Referral Program</CardTitle>
-                <CardDescription className="text-gray-600">
-                  Share your referral code and earn commissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Your Referral Code</p>
-                    <p className="text-xl font-bold text-blue-600">{walletData.referral_code}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button onClick={copyReferralCode} variant="outline">
-                      Copy Code
-                    </Button>
-                    <Button onClick={shareViaWhatsApp} className="bg-green-600 hover:bg-green-700">
-                      Share via WhatsApp
-                    </Button>
-                  </div>
-                </div>
-                
-                {walletData.referred_by && (
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Referred By</p>
-                    <p className="font-medium">{walletData.referred_by}</p>
-                  </div>
-                )}
-                
-                {walletData.purchased_package && (
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Your Package</p>
-                    <p className="font-medium capitalize">{walletData.purchased_package}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="referral-program bg-white shadow-2xl border rounded-2xl p-6">
+              <h2 className="text-2xl font-black text-blue-600 mb-2">Referral Program</h2>
+              <p className="text-gray-600 mb-4">Share your referral code and earn commissions</p>
+              <p className="mb-4">Your Referral Code: <span className="font-bold text-blue-600">{walletData.referral_code}</span></p>
+              <div className="flex gap-2">
+                <Button onClick={copyReferralCode} variant="outline">
+                  Copy Code
+                </Button>
+                <Button onClick={shareViaWhatsApp} className="bg-green-600 hover:bg-green-700">
+                  Share via WhatsApp
+                </Button>
+              </div>
+            </div>
 
             {/* Profile Section */}
             <Card className="bg-white shadow-2xl border rounded-2xl">
