@@ -320,6 +320,61 @@ export default function StudentDashboard() {
               </Button>
             </CardContent>
           </Card>
+        ) : purchases.length === 0 ? (
+          // Show only profile section for users with no purchases
+          <div className="space-y-8">
+            {/* Profile Section */}
+            <Card className="bg-white shadow-2xl border rounded-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-black text-blue-600">Your Profile</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Your account information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Name:</span>
+                  <span className="font-semibold">{userData?.name || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Email:</span>
+                  <span className="font-semibold">{userData?.email || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">Mobile:</span>
+                  <span className="font-semibold">{userData?.mobile_number || "N/A"}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b">
+                  <span className="font-medium text-gray-600">State:</span>
+                  <span className="font-semibold">{userData?.state || "N/A"}</span>
+                </div>
+                <div className="pt-4 text-center text-sm text-gray-500">
+                  <p>You'll earn commission based on your current package level, regardless of which package the referred person buys.</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Purchased Packages Section */}
+            <Card className="bg-white shadow-2xl border rounded-2xl">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-black text-blue-600">Your Courses</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Courses you've purchased
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">You haven't joined YouthPargati yet. Please buy a package to get started.</p>
+                  <Button 
+                    onClick={() => navigate('/')} 
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Browse Courses
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <div className="space-y-8">
             {/* Wallet and Earnings Dashboard */}
