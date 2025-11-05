@@ -508,20 +508,7 @@ export default function StudentDashboard() {
               </Card>
             </div>
 
-            {/* Referral Section */}
-            <div className="referral-program bg-white shadow-2xl border rounded-2xl p-6">
-              <h2 className="text-2xl font-black text-blue-600 mb-2">Referral Program</h2>
-              <p className="text-gray-600 mb-4">Share your referral code and earn commissions</p>
-              <p className="mb-4">Your Referral Code: <span className="font-bold text-blue-600">{walletData.referral_code}</span></p>
-              <div className="flex gap-2">
-                <Button onClick={copyReferralCode} variant="outline">
-                  Copy Code
-                </Button>
-                <Button onClick={shareViaWhatsApp} className="bg-green-600 hover:bg-green-700">
-                  Share via WhatsApp
-                </Button>
-              </div>
-            </div>
+
 
             {/* Profile Section */}
             <Card className="bg-white shadow-2xl border rounded-2xl">
