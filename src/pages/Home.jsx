@@ -162,11 +162,22 @@ function Home() {
           <p className="text-xl md:text-2xl mb-12 font-semibold">
             Learn digital skills and build your empire with confidence.
           </p>
-          {/* Motivational Overlay */}
-
-          <StartJourneyButton />
           
-          {/* Test buttons for debugging - REMOVED as per user request */}
+          {/* Show referral dashboard link for logged-in users */}
+          {user && (
+            <div className="mb-6">
+              <Button 
+                onClick={() => navigate('/referral-dashboard')}
+                variant="outline"
+                className="bg-white/20 hover:bg-white/30 text-white border-white"
+              >
+                My Referral Dashboard
+              </Button>
+            </div>
+          )}
+          
+          {/* Motivational Overlay */}
+          <StartJourneyButton />
         </div>
         {/* Animated Background Elements */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-400 rounded-full opacity-20 animate-bounce"></div>
@@ -258,7 +269,7 @@ function Home() {
                       <DollarSign className="h-8 w-8 text-blue-600" />
                     </div>
                     {pkg.name && (
-                      <div className="text-sm text-gray-500 font-semibold">{pkg.name}</div>
+                      <div className="text-sm font-semibold text-blue-600 mb-1">{pkg.name}</div>
                     )}
                     <CardTitle className="text-2xl font-black">{pkg.title}</CardTitle>
                     <CardDescription className="text-gray-600">
@@ -308,6 +319,9 @@ function Home() {
                       <Badge className="bg-blue-100 text-blue-600 font-bold">PACKAGE</Badge>
                       <DollarSign className="h-8 w-8 text-blue-600" />
                     </div>
+                    {pkg.name && (
+                      <div className="text-sm font-semibold text-blue-600 mb-1">{pkg.name}</div>
+                    )}
                     <CardTitle className="text-2xl font-black">{pkg.title}</CardTitle>
                     <CardDescription className="text-gray-600">
                       {pkg.description}
