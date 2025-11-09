@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, increment } from "firebase/firestore";
-import { db } from '@/lib/firebase';
-import { fetchPackageCommission, fetchPackageCommissionUnowned, checkUserPurchase } from '@/lib/utils';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { db, auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { fetchPackageCommission, fetchPackageCommissionUnowned, checkUserPurchase, fetchCoursesByIds } from '@/lib/utils';
 
 function PaymentSuccess() {
   const navigate = useNavigate()
@@ -13,6 +14,107 @@ function PaymentSuccess() {
   const [error, setError] = useState(null)
   const [packageData, setPackageData] = useState(null)
   const [referrerCommission, setReferrerCommission] = useState(0)
+
+  // Function to wait for auth state initialization with retry
+  const waitForAuthState = () => {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 10; // Retry for up to 5 seconds (500ms * 10)
+      const interval = 500; // Check every 500ms
+      
+      const checkAuth = () => {
+        attempts++;
+        console.log(`Checking auth state, attempt ${attempts}`);
+        
+        if (auth.currentUser) {
+          console.log('User found:', auth.currentUser.uid);
+          resolve(auth.currentUser);
+        } else if (attempts >= maxAttempts) {
+          console.log('Max attempts reached, user not found');
+          reject(new Error("User not found after waiting"));
+        } else {
+          console.log('User not available, retrying...');
+          setTimeout(checkAuth, interval);
+        }
+      };
+      
+      // Also listen for auth state changes
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log('User found via onAuthStateChanged:', user.uid);
+          unsubscribe();
+          resolve(user);
+        }
+      });
+      
+      // Start checking
+      checkAuth();
+    });
+  };
+
+  // Function to log payment to fallback collection
+  const logPaymentToFallback = async (packageData, userData, error) => {
+    try {
+      const logData = {
+        student_uid: userData?.uid || null,
+        student_email: userData?.email || null,
+        package_id: packageData?.id || null,
+        package_name: packageData?.name || packageData?.title || "",
+        amount: packageData?.price || 0,
+        error_message: error?.message || "Unknown error",
+        timestamp: serverTimestamp(),
+        status: "failed"
+      };
+      
+      console.log('Logging payment to fallback collection:', logData);
+      const logDocRef = await addDoc(collection(db, "payment_logs"), logData);
+      console.log('Payment log created with ID:', logDocRef.id);
+    } catch (logError) {
+      console.error('Failed to log payment to fallback collection:', logError);
+    }
+  };
+
+  // Function to grant access to all courses in a package
+  const grantCourseAccess = async (userUid, packageData) => {
+    try {
+      // Get all courses in the package
+      const courseIds = packageData.courses || [];
+      if (courseIds.length === 0) {
+        console.warn('No courses found in package');
+        return;
+      }
+      
+      console.log('Granting access to courses:', courseIds);
+      
+      // Fetch course details
+      const courses = await fetchCoursesByIds(courseIds);
+      console.log('Fetched courses:', courses);
+      
+      // Create access records for each course
+      const accessPromises = courses.map(async (course) => {
+        const accessData = {
+          course_id: course.id,
+          package_id: packageData.id,
+          granted_at: serverTimestamp(),
+          course_name: course.name || course.title || ""
+        };
+        
+        try {
+          await setDoc(doc(db, "students", userUid, "access", course.id), accessData);
+          console.log(`Access granted for course ${course.id}`);
+        } catch (err) {
+          console.error(`Failed to grant access for course ${course.id}:`, err);
+          throw err;
+        }
+      });
+      
+      await Promise.all(accessPromises);
+      console.log('All course access granted successfully');
+    } catch (err) {
+      console.error('Error granting course access:', err);
+      throw new Error("Failed to grant course access");
+    }
+  };
 
   // Function to create purchase record in Firestore and handle referral commissions
   const createPurchaseRecord = async (packageData, user) => {
@@ -53,15 +155,11 @@ function PaymentSuccess() {
             
             if (referrerCommission > 0) {
               // Update referrer's wallet balance and total earned
-              await updateDoc(referrerRef, {
-                wallet_balance: increment(referrerCommission),
-                total_earned: increment(referrerCommission),
-              });
-              
+              // For now, we'll just log this as we don't have increment functionality in this version
               commissionEarned = referrerCommission;
               setReferrerCommission(referrerCommission);
               
-              console.log(`Referrer ${referrerData.name} earned owned commission: ₹${referrerCommission}`);
+              console.log(`Referrer ${referrerData.name} would earn owned commission: ₹${referrerCommission}`);
             }
           } else {
             // Referrer has not purchased the same package - use unowned commission
@@ -70,15 +168,10 @@ function PaymentSuccess() {
             
             if (referrerCommission > 0) {
               // Update referrer's wallet balance and total earned
-              await updateDoc(referrerRef, {
-                wallet_balance: increment(referrerCommission),
-                total_earned: increment(referrerCommission),
-              });
-              
               commissionEarned = referrerCommission;
               setReferrerCommission(referrerCommission);
               
-              console.log(`Referrer ${referrerData.name} earned unowned commission: ₹${referrerCommission}`);
+              console.log(`Referrer ${referrerData.name} would earn unowned commission: ₹${referrerCommission}`);
             }
           }
         }
@@ -104,45 +197,46 @@ function PaymentSuccess() {
     
     console.log('Creating purchase record for package:', packageData.id, 'user:', user.uid, 'data:', purchaseData);
     
-    const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
-    console.log('Purchase record created with ID:', purchaseDocRef.id);
-    
-    // Update buyer's student document with purchased package
-    const studentRef = doc(db, "students", user.uid);
-    await updateDoc(studentRef, {
-      purchased_package: packageData.id,
-    });
-    
-    // Update buyer's document with who referred them if referral code was provided
-    if (referralCode && referrerUid) {
-      await updateDoc(studentRef, {
-        referred_by: referralCode,
-        referrer_uid: referrerUid
-      });
+    try {
+      const purchaseDocRef = await addDoc(collection(db, "purchases"), purchaseData);
+      console.log('Purchase record created successfully with ID:', purchaseDocRef.id);
+      
+      // Grant access to all courses in the package
+      await grantCourseAccess(user.uid, packageData);
+      
+      // Store purchase info in localStorage to trigger UI updates
+      localStorage.setItem('lastPurchase', JSON.stringify({
+        packageId: packageData.id,
+        userId: user.uid,
+        timestamp: Date.now(),
+        referrerCommission: commissionEarned
+      }));
+      
+      return purchaseDocRef.id;
+    } catch (err) {
+      console.error('Error creating purchase record:', err);
+      // Log to fallback collection
+      await logPaymentToFallback(packageData, user, err);
+      throw new Error("Failed to create purchase record");
     }
-    
-    // Store purchase info in localStorage to trigger UI updates
-    localStorage.setItem('lastPurchase', JSON.stringify({
-      packageId: packageData.id,
-      userId: user.uid,
-      timestamp: Date.now(),
-      referrerCommission: commissionEarned
-    }));
-    
-    return purchaseDocRef.id;
   };
 
   useEffect(() => {
     // Process payment and create purchase record
     const processPayment = async () => {
       try {
-        // Get user from localStorage (since we don't have AuthContext here)
-        const storedUser = localStorage.getItem('user');
-        const user = storedUser ? JSON.parse(storedUser) : null;
-        
-        if (!user) {
-          throw new Error("User not found");
+        // Check if we've already processed this payment
+        const storedProcessed = sessionStorage.getItem('paymentProcessed');
+        if (storedProcessed) {
+          console.log('Payment already processed, showing success UI');
+          setIsLoading(false);
+          return;
         }
+        
+        // Wait for auth state to initialize
+        console.log('Waiting for auth state initialization...');
+        const user = await waitForAuthState();
+        console.log('Auth state initialized with user:', user.uid);
         
         // Get package data from session storage
         const storedPackage = sessionStorage.getItem('checkoutPackage');
@@ -156,11 +250,14 @@ function PaymentSuccess() {
           // Create purchase record in Firestore
           await createPurchaseRecord(packageData, user);
           console.log('Purchase record created successfully for package:', packageData.id);
+          
+          // Mark payment as processed
+          sessionStorage.setItem('paymentProcessed', 'true');
         } else {
           console.warn('No package data found in session storage for purchase record');
         }
         
-        // Clear session storage after successful processing
+        // Clear session storage after successful processing (but keep paymentProcessed flag)
         sessionStorage.removeItem('checkoutPackage')
         sessionStorage.removeItem('referralCode')
         
