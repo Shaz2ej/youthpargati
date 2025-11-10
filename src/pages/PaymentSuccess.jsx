@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle, User, BookOpen } from 'lucide-react'
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { fetchPackageCommission, fetchPackageCommissionUnowned, checkUserPurchase, fetchCoursesByIds } from '@/lib/utils';
@@ -151,30 +151,31 @@ function PaymentSuccess() {
           // Check if referrer has purchased the same package
           const hasPurchasedSamePackage = await checkUserPurchase(packageData.id, referrerUid);
           
+          let referrerCommission = 0;
           if (hasPurchasedSamePackage) {
             // Referrer has purchased the same package - use owned commission
             commissionType = "owned";
-            const referrerCommission = await fetchPackageCommission(packageData.id);
-            
-            if (referrerCommission > 0) {
-              // Update referrer's wallet balance and total earned
-              // For now, we'll just log this as we don't have increment functionality in this version
-              commissionEarned = referrerCommission;
-              setReferrerCommission(referrerCommission);
-              
-              console.log(`Referrer ${referrerData.name} would earn owned commission: ₹${referrerCommission}`);
-            }
+            referrerCommission = await fetchPackageCommission(packageData.id);
           } else {
             // Referrer has not purchased the same package - use unowned commission
             commissionType = "unowned";
-            const referrerCommission = await fetchPackageCommissionUnowned(packageData.id);
-            
-            if (referrerCommission > 0) {
-              // Update referrer's wallet balance and total earned
-              commissionEarned = referrerCommission;
-              setReferrerCommission(referrerCommission);
+            referrerCommission = await fetchPackageCommissionUnowned(packageData.id);
+          }
+          
+          if (referrerCommission > 0) {
+            // Update referrer's wallet balance and total earned
+            try {
+              await updateDoc(doc(db, "students", referrerUid), {
+                wallet_balance: increment(referrerCommission),
+                total_earned: increment(referrerCommission),
+                last_updated: serverTimestamp()
+              });
               
-              console.log(`Referrer ${referrerData.name} would earn unowned commission: ₹${referrerCommission}`);
+              commissionEarned = referrerCommission;
+              console.log(`Referrer ${referrerData.name} earned commission: ₹${referrerCommission}`);
+              console.log(`Updated referrer ${referrerUid} wallet balance and total earned`);
+            } catch (updateError) {
+              console.error('Error updating referrer wallet:', updateError);
             }
           }
         } else {

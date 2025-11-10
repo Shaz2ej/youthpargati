@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { collection, addDoc, setDoc, doc } from 'firebase/firestore';
 
-// Package data
+// Package data with commission information
 const packages = [
   {
     id: 'seed',
@@ -9,28 +9,32 @@ const packages = [
     title: 'Pargati Seed',
     description: 'Get started with essential digital skills',
     price: 199,
-    thumbnail_url: 'https://i.ibb.co/hxF0cSCz/seed-package.jpg' // Added the thumbnail URL
+    commission: 80, // ₹80 commission for Seed package referrers
+    thumbnail_url: 'https://i.ibb.co/hxF0cSCz/seed-package.jpg'
   },
   {
     id: 'basic',
     name: 'Basic Package',
     title: 'Pargati Basic',
     description: 'Essential skills for beginners',
-    price: 376
+    price: 376,
+    commission: 150 // ₹150 commission for Basic package referrers
   },
   {
     id: 'elite', 
     name: 'Elite Package',
     title: 'Pargati Elite',
     description: 'Advanced skills for serious learners',
-    price: 532
+    price: 532,
+    commission: 200 // ₹200 commission for Elite package referrers
   },
   {
     id: 'warriors',
     name: 'Warriors Package',
     title: 'Pargati Warriors', 
     description: 'Elite training for digital champions',
-    price: 1032
+    price: 1032,
+    commission: 300 // ₹300 commission for Warriors package referrers
   }
 ];
 
@@ -67,7 +71,7 @@ const populateFirestore = async () => {
     console.log('Populating packages...');
     for (const pkg of packages) {
       await setDoc(doc(db, 'packages', pkg.id), pkg);
-      console.log(`Added package: ${pkg.title}`);
+      console.log(`Added package: ${pkg.title} with commission: ₹${pkg.commission}`);
     }
 
     console.log('Populating courses...');

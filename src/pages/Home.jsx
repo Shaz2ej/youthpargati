@@ -29,7 +29,6 @@ function Home() {
   const [packages, setPackages] = useState([])
   const [error, setError] = useState(null)
   const [processing, setProcessing] = useState({})
-  const [referralCode, setReferralCode] = ''
 
   // Fallback data to ensure UI never breaks
   const fallbackPackages = [
@@ -71,7 +70,6 @@ function Home() {
     console.log('handleBuyNow: Called with package', pkg);
     console.log('handleBuyNow: Current user state', user);
     console.log('handleBuyNow: Current auth context', { user, isLoadingAuth });
-    console.log('handleBuyNow: Referral code', referralCode);
     
     // More robust check - wait for auth state to be fully loaded
     if (isLoadingAuth) {
@@ -85,10 +83,6 @@ function Home() {
       console.log('User not logged in, redirecting to login page');
       // Store the package they wanted to buy in session storage
       sessionStorage.setItem('checkoutPackage', JSON.stringify(pkg));
-      // Store referral code if entered
-      if (referralCode) {
-        sessionStorage.setItem('referralCode', referralCode);
-      }
       // Redirect to login page
       navigate('/login');
       return;
@@ -114,12 +108,9 @@ function Home() {
     try {
       console.log('handleBuyNow: Navigating to checkout for user', user.uid);
       
-      // Navigate to checkout page with package and referral code data
-      // Store package and referral code in session storage for the checkout page
+      // Navigate to checkout page with package data
+      // Store package in session storage for the checkout page
       sessionStorage.setItem('checkoutPackage', JSON.stringify(pkg))
-      if (referralCode) {
-        sessionStorage.setItem('referralCode', referralCode)
-      }
       
       // Navigate to checkout page
       navigate('/checkout')
@@ -169,23 +160,6 @@ function Home() {
           <p className="text-xl md:text-2xl mb-12 font-semibold">
             Learn digital skills and build your empire with confidence.
           </p>
-          
-          {/* Add referral code input in hero section */}
-          <div className="max-w-md mx-auto mb-8">
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 border border-white/30">
-              <h3 className="text-lg font-bold mb-3 text-white">Have a referral code?</h3>
-              <Input
-                type="text"
-                placeholder="Enter referral code"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value)}
-                className="mb-3 text-gray-800"
-              />
-              <p className="text-sm text-white/80">
-                Enter a referral code to earn commissions for the referrer
-              </p>
-            </div>
-          </div>
           
           {/* Motivational Overlay */}
           <StartJourneyButton />

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Populate Firestore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Populate Firestore with Packages and Courses</h1>
+        <p>This page will populate your Firestore database with the default packages and courses.</p>
+        
+        <button id="populateBtn">Populate Firestore</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getFirestore, collection, addDoc, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyByK3AqqZ4uwpcPY_2iEV9riZ4xxXuPASU",
+          authDomain: "youthpargati-e975a.firebaseapp.com",
+          projectId: "youthpargati-e975a",
+          storageBucket: "youthpargati-e975a.firebasestorage.app",
+          messagingSenderId: "733396374495",
+          appId: "1:733396374495:web:e2212b96372633dd296a6a"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Package data
+        const packages = [
+          {
+            id: 'basic',
+            title: 'Pargati Basic',
+            description: 'Essential skills for beginners',
+            price: 376
+          },
+          {
+            id: 'elite', 
+            title: 'Pargati Elite',
+            description: 'Advanced skills for serious learners',
+            price: 532
+          },
+          {
+            id: 'warriors',
+            title: 'Pargati Warriors', 
+            description: 'Elite training for digital champions',
+            price: 1032
+          }
+        ];
+
+        // Course data
+        const courses = [
+          {
+            id: 'course-1',
+            title: 'Introduction to Digital Marketing',
+            description: 'Learn the basics of digital marketing and online advertising',
+            packageId: 'basic'
+          },
+          {
+            id: 'course-2', 
+            title: 'Advanced SEO Techniques',
+            description: 'Master search engine optimization for better website rankings',
+            packageId: 'elite'
+          },
+          {
+            id: 'course-3',
+            title: 'Social Media Strategy', 
+            description: 'Create effective social media campaigns that drive engagement',
+            packageId: 'warriors'
+          }
+        ];
+
+        const logElement = document.getElementById('log');
+        const populateBtn = document.getElementById('populateBtn');
+
+        function log(message, type = '') {
+            const entry = document.createElement('div');
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            if (type) {
+                entry.className = type;
+            }
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function populateFirestore() {
+            try {
+                log('Starting Firestore population...', 'info');
+                
+                log('Populating packages...');
+                for (const pkg of packages) {
+                    await setDoc(doc(db, 'packages', pkg.id), pkg);
+                    log(`Added package: ${pkg.title}`, 'success');
+                }
+
+                log('Populating courses...');
+                for (const course of courses) {
+                    await setDoc(doc(db, 'courses', course.id), course);
+                    log(`Added course: ${course.title}`, 'success');
+                }
+
+                log('Firestore population completed successfully!', 'success');
+                populateBtn.disabled = true;
+                populateBtn.textContent = 'Population Complete!';
+            } catch (error) {
+                log(`Error populating Firestore: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        populateBtn.addEventListener('click', populateFirestore);
+    </script>
+</body>
+</html>

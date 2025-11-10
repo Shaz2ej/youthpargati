@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Firestore Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verify Firestore Packages Data</h1>
+        <p>This page will verify that all packages in Firestore have the correct structure.</p>
+        
+        <button id="verifyBtn">Verify Firestore Data</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyByK3AqqZ4uwpcPY_2iEV9riZ4xxXuPASU",
+          authDomain: "youthpargati-e975a.firebaseapp.com",
+          projectId: "youthpargati-e975a",
+          storageBucket: "youthpargati-e975a.firebasestorage.app",
+          messagingSenderId: "733396374495",
+          appId: "1:733396374495:web:e2212b96372633dd296a6a"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const logElement = document.getElementById('log');
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        function log(message, type = '') {
+            const entry = document.createElement('div');
+            entry.textContent = message;
+            if (type) {
+                entry.className = type;
+            }
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function verifyFirestoreData() {
+            try {
+                log('Verifying Firestore packages data...', 'info');
+                const querySnapshot = await getDocs(collection(db, 'packages'));
+                
+                log(`Found ${querySnapshot.size} packages:`, 'info');
+                
+                let issuesFound = false;
+                
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    log(`\nPackage ID: ${doc.id}`, 'info');
+                    log(`  Name: ${data.name || 'MISSING'}`, data.name ? 'success' : 'error');
+                    log(`  Title: ${data.title || 'MISSING'}`, data.title ? 'success' : 'error');
+                    log(`  Description: ${data.description || 'MISSING'}`, data.description ? 'success' : 'error');
+                    log(`  Price: ${data.price || 'MISSING'}`, data.price ? 'success' : 'error');
+                    
+                    // Check for missing fields
+                    if (!data.name || !data.title || !data.description || !data.price) {
+                        issuesFound = true;
+                        log(`  WARNING: Package ${doc.id} is missing required fields!`, 'warning');
+                    }
+                });
+                
+                if (!issuesFound) {
+                    log('\n✅ All packages have the required fields!', 'success');
+                } else {
+                    log('\n❌ Some packages are missing required fields!', 'error');
+                }
+                
+                log('\nVerification completed!', 'info');
+                verifyBtn.disabled = true;
+                verifyBtn.textContent = 'Verification Complete!';
+            } catch (error) {
+                log(`Error verifying Firestore data: ${error.message}`, 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        verifyBtn.addEventListener('click', verifyFirestoreData);
+    </script>
+</body>
+</html>
