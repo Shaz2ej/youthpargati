@@ -127,6 +127,7 @@ function PaymentSuccess() {
     
     // Get referral code from session storage
     const referralCode = sessionStorage.getItem('referralCode') || '';
+    console.log('Retrieved referral code from sessionStorage:', referralCode);
     
     // Handle referral commission if referral code was provided
     let commissionEarned = 0;
@@ -144,6 +145,8 @@ function PaymentSuccess() {
           const referrerData = referrerDoc.data();
           const referrerRef = referrerDoc.ref;
           referrerUid = referrerDoc.id;
+          
+          console.log('Found referrer with UID:', referrerUid);
           
           // Check if referrer has purchased the same package
           const hasPurchasedSamePackage = await checkUserPurchase(packageData.id, referrerUid);
@@ -174,11 +177,15 @@ function PaymentSuccess() {
               console.log(`Referrer ${referrerData.name} would earn unowned commission: ₹${referrerCommission}`);
             }
           }
+        } else {
+          console.log('No referrer found for referral code:', referralCode);
         }
       } catch (err) {
         console.error('Error processing referral commission:', err);
         // Don't fail the purchase if referral processing fails
       }
+    } else {
+      console.log('No referral code provided');
     }
     
     // Create purchase record in Firestore with all necessary referral and commission details

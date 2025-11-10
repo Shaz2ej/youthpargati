@@ -28,6 +28,7 @@ function Checkout() {
       setPackageData(JSON.parse(storedPackage))
     }
     
+    // Initialize referral code from session storage
     if (storedReferralCode) {
       setReferralCode(storedReferralCode)
     }
