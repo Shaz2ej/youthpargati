@@ -17,12 +17,14 @@ This document describes the implementation of the fixed self-package-based refer
 
 ### Commission Structure
 
-| Package Level | Commission Earned by Referrer |
-|---------------|-------------------------------|
-| Seed          | ₹80                           |
-| Basic         | ₹150                          |
-| Elite         | ₹200                          |
-| Warriors      | ₹300                          |
+The referral system now supports two types of commissions based on whether the referrer has purchased the same package:
+
+| Package Level | Owned Commission (referrer has package) | Unowned Commission (referrer doesn't have package) |
+|---------------|-----------------------------------------|---------------------------------------------------|
+| Seed          | ₹80                                     | ₹40                                               |
+| Basic         | ₹150                                    | ₹75                                               |
+| Elite         | ₹200                                    | ₹100                                              |
+| Warriors      | ₹300                                    | ₹150                                              |
 
 ## How It Works
 
@@ -41,8 +43,9 @@ The fixed self-package-based referral system works as follows:
 1. When a purchase is made with a referral code:
    - The system finds the student with that referral code
    - It checks what package that referrer has purchased
+   - If the referrer has purchased the same package, they earn the "owned" commission
+   - If the referrer has not purchased the same package, they earn the "unowned" commission
    - The system fetches the commission amount dynamically from Firestore based on the referrer's package
-   - The referrer earns the commission amount based on their own package level
    - The commission is added to their wallet balance and total earnings
 
 **Important**: The commission amount is based on the referrer's package level, NOT the buyer's package level.
@@ -72,11 +75,12 @@ Students can withdraw their earnings when their wallet balance reaches ₹200 or
 
 ### Package Commission Fetching
 
-Commission amounts are now fetched dynamically from Firestore instead of using hardcoded frontend values. The system uses the `fetchPackageCommission` function from `src/lib/utils.js` to retrieve commission amounts.
+Commission amounts are now fetched dynamically from Firestore instead of using hardcoded frontend values. The system uses the `fetchPackageCommission` and `fetchPackageCommissionUnowned` functions from `src/lib/utils.js` to retrieve commission amounts.
 
 ```javascript
 // In PaymentSuccess.jsx
-const referrerCommission = await fetchPackageCommission(referrerPackageId);
+const referrerCommission = await fetchPackageCommission(packageId); // for owned
+const referrerCommission = await fetchPackageCommissionUnowned(packageId); // for unowned
 ```
 
 ### Firestore Data Structure
@@ -111,7 +115,8 @@ const referrerCommission = await fetchPackageCommission(referrerPackageId);
   title: string,
   description: string,
   price: number,
-  commission: number
+  commission: number,        // for users who have purchased the package
+  commission_unowned: number // for users who haven't purchased the package
 }
 ```
 
@@ -123,6 +128,7 @@ const referrerCommission = await fetchPackageCommission(referrerPackageId);
   package_id: string,
   referred_by: string,
   commission: number,
+  commission_type: string, // "owned" or "unowned"
   purchase_date: timestamp,
   payment_status: string
 }
@@ -130,24 +136,27 @@ const referrerCommission = await fetchPackageCommission(referrerPackageId);
 
 ## Example Scenarios
 
-### Scenario 1: Seed Package Referrer
+### Scenario 1: Seed Package Referrer (Owned)
 - Referrer: Shaban (purchased Seed package)
-- Buyer: New student (purchases any package)
+- Buyer: New student (purchases Seed package)
 - Result: Shaban earns ₹80 commission
 
-### Scenario 2: Warriors Package Referrer
+### Scenario 2: Seed Package Referrer (Unowned)
+- Referrer: Shaban (has not purchased Seed package)
+- Buyer: New student (purchases Seed package)
+- Result: Shaban earns ₹40 commission
+
+### Scenario 3: Warriors Package Referrer (Owned)
 - Referrer: Shaban (purchased Warriors package)
 - Buyer: New student (purchases any package)
 - Result: Shaban earns ₹300 commission
 
-## Future Improvements
+### Scenario 4: Warriors Package Referrer (Unowned)
+- Referrer: Shaban (has not purchased Warriors package)
+- Buyer: New student (purchases Warriors package)
+- Result: Shaban earns ₹150 commission
 
-1. **Admin Dashboard**: Create an admin interface to manage commissions and view withdrawal requests
-2. **Email Notifications**: Send email notifications for successful withdrawals
-3. **Referral Tracking**: Add more detailed tracking of referral performance
-4. **Multi-level Referrals**: Implement multi-level referral commissions
-
-## Testing
+## Testing Instructions
 
 To test the referral system:
 1. Create a new user account

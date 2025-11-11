@@ -135,28 +135,64 @@ export default function StudentDashboard() {
       if (!user) return;
 
       try {
-        // Fetch all purchase records where referred_by == currentUser.uid
-        const q = query(collection(db, "purchases"), where("referred_by", "==", user.uid));
+        // Fetch all purchase records where referred_by == currentUser.uid and payment_status == "success"
+        const q = query(
+          collection(db, "purchases"), 
+          where("referred_by", "==", user.uid),
+          where("payment_status", "==", "success")
+        );
         const querySnapshot = await getDocs(q);
         
         // Group earnings by day and calculate totals
         const earnings = [];
         let totalEarned = 0;
         
+        // Create an array of promises to fetch package data
+        const packageFetchPromises = [];
+        const purchaseDocs = [];
+        
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          const commission = data.commission || 0;
-          const purchaseDate = data.purchase_date?.toDate() || new Date();
+          purchaseDocs.push({ id: doc.id, ...data });
+          
+          // Fetch package data for each purchase
+          if (data.package_id) {
+            packageFetchPromises.push(fetchPackageById(data.package_id));
+          } else {
+            packageFetchPromises.push(Promise.resolve(null));
+          }
+        });
+        
+        // Wait for all package data to be fetched
+        const packagesData = await Promise.all(packageFetchPromises);
+        
+        // Process each purchase with its corresponding package data
+        purchaseDocs.forEach((purchase, index) => {
+          const packageData = packagesData[index];
+          let commission = 0;
+          
+          // Use the correct commission based on commission_type
+          if (purchase.commission_type === "owned") {
+            commission = purchase.commission || 0;
+          } else if (purchase.commission_type === "unowned") {
+            commission = purchase.commission || 0;
+          } else {
+            // Fallback for older records
+            commission = purchase.commission || 0;
+          }
+          
+          const purchaseDate = purchase.purchase_date?.toDate() || new Date();
           
           // Add to total earned
           totalEarned += commission;
           
           // Add to earnings array
           earnings.push({
-            id: doc.id,
-            ...data,
+            id: purchase.id,
+            ...purchase,
             commission,
-            purchaseDate
+            purchaseDate,
+            packageData // Include package data for display purposes
           });
         });
         

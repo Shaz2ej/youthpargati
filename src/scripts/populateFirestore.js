@@ -9,7 +9,8 @@ const packages = [
     title: 'Pargati Seed',
     description: 'Get started with essential digital skills',
     price: 199,
-    commission: 80, // ₹80 commission for Seed package referrers
+    commission: 80, // ₹80 commission for Seed package referrers (owned)
+    commission_unowned: 40, // ₹40 commission for Seed package referrers (unowned)
     thumbnail_url: 'https://i.ibb.co/hxF0cSCz/seed-package.jpg'
   },
   {
@@ -18,7 +19,8 @@ const packages = [
     title: 'Pargati Basic',
     description: 'Essential skills for beginners',
     price: 376,
-    commission: 150 // ₹150 commission for Basic package referrers
+    commission: 150, // ₹150 commission for Basic package referrers (owned)
+    commission_unowned: 75 // ₹75 commission for Basic package referrers (unowned)
   },
   {
     id: 'elite', 
@@ -26,7 +28,8 @@ const packages = [
     title: 'Pargati Elite',
     description: 'Advanced skills for serious learners',
     price: 532,
-    commission: 200 // ₹200 commission for Elite package referrers
+    commission: 200, // ₹200 commission for Elite package referrers (owned)
+    commission_unowned: 100 // ₹100 commission for Elite package referrers (unowned)
   },
   {
     id: 'warriors',
@@ -34,7 +37,8 @@ const packages = [
     title: 'Pargati Warriors', 
     description: 'Elite training for digital champions',
     price: 1032,
-    commission: 300 // ₹300 commission for Warriors package referrers
+    commission: 300, // ₹300 commission for Warriors package referrers (owned)
+    commission_unowned: 150 // ₹150 commission for Warriors package referrers (unowned)
   }
 ];
 
@@ -71,7 +75,7 @@ const populateFirestore = async () => {
     console.log('Populating packages...');
     for (const pkg of packages) {
       await setDoc(doc(db, 'packages', pkg.id), pkg);
-      console.log(`Added package: ${pkg.title} with commission: ₹${pkg.commission}`);
+      console.log(`Added package: ${pkg.title} with commission: ₹${pkg.commission}, commission_unowned: ₹${pkg.commission_unowned}`);
     }
 
     console.log('Populating courses...');

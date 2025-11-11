@@ -29,6 +29,9 @@ This document describes the implementation of the dynamic referral system for th
 - Referral codes are stored and retrieved from the user's record in Firebase
 - When a new user buys a package using a referral code, the system stores who referred them
 - When user buys a package, that package automatically moves from "Other Packages" → "Your Purchased Packages"
+- Referral commissions are calculated based on whether the referrer has purchased the same package:
+  - Owned Commission: Higher commission for referrers who have purchased the same package
+  - Unowned Commission: Lower commission for referrers who haven't purchased the same package
 
 ### 4. UI Components
 - Clean card-based layout for each course using Tailwind CSS
@@ -53,7 +56,9 @@ The student document structure has been updated to include referral codes:
   },
   purchased_package: string,
   referred_by: string,
-  referrer_uid: string
+  referrer_uid: string,
+  wallet_balance: number,
+  total_earned: number
 }
 ```
 
@@ -68,6 +73,7 @@ The purchase record structure has been updated to track referral information:
   referred_by: string,
   referrer_uid: string,
   commission: number,
+  commission_type: string, // "owned" or "unowned"
   purchase_date: timestamp,
   payment_status: string
 }
@@ -78,9 +84,10 @@ The purchase record structure has been updated to track referral information:
 ### Components
 1. **ReferralDashboard.jsx** - Main dashboard component showing purchased and other packages
 2. **Login.jsx** - Updated to initialize referral_codes field for new users
-3. **PaymentSuccess.jsx** - Updated to store referrer information when a purchase is made with a referral code
-4. **Home.jsx** - Added link to referral dashboard for logged-in users
-5. **PackageCourses.jsx** - Added link to referral dashboard
+3. **PaymentSuccess.jsx** - Updated to store referrer information and process commissions when a purchase is made with a referral code
+4. **StudentDashboard.jsx** - Updated to display referral earnings based on commission_type
+5. **Home.jsx** - Added link to referral dashboard for logged-in users
+6. **PackageCourses.jsx** - Added link to referral dashboard
 
 ### Routes
 - `/referral-dashboard` - Access the referral dashboard
@@ -89,6 +96,7 @@ The purchase record structure has been updated to track referral information:
 The dashboard uses Firebase real-time listeners to automatically update when:
 - A user purchases a new package
 - User data changes
+- Wallet balance and earnings are updated
 
 ## Usage Instructions
 
@@ -101,7 +109,7 @@ The dashboard uses Firebase real-time listeners to automatically update when:
 2. **Using Referral Codes**
    - Copy referral codes from either section using the "Copy" button
    - Share referral codes using the "Share" button (opens WhatsApp)
-   - When someone uses your referral code to purchase a package, you earn commissions
+   - When someone uses your referral code to purchase a package, you earn commissions based on whether you own that package
 
 3. **Automatic Package Movement**
    - When you purchase a new package, it will automatically appear in "Your Purchased Packages"
@@ -125,10 +133,21 @@ const generateReferralCode = (userName, packageName) => {
 };
 ```
 
+### Commission System
+The referral system now supports two types of commissions:
+
+| Package Level | Owned Commission (referrer has package) | Unowned Commission (referrer doesn't have package) |
+|---------------|-----------------------------------------|---------------------------------------------------|
+| Seed          | ₹80                                     | ₹40                                               |
+| Basic         | ₹150                                    | ₹75                                               |
+| Elite         | ₹200                                    | ₹100                                              |
+| Warriors      | ₹300                                    | ₹150                                              |
+
 ### Firebase Structure Updates
 1. Added `referral_codes` object to student documents
 2. Added `referrer_uid` field to student documents
-3. Added `referrer_uid` field to purchase records
+3. Added `referrer_uid` and `commission_type` fields to purchase records
+4. Added `wallet_balance` and `total_earned` fields to student documents
 
 ## Future Enhancements
 
@@ -159,3 +178,5 @@ To test the referral system:
 4. Purchase a package and verify it moves to "Your Purchased Packages"
 5. Use a referral code when purchasing a package as another user
 6. Verify that the referrer information is stored correctly
+7. Check that the referrer earns the correct commission based on whether they own the package
+8. Verify that the commission is displayed correctly in the student dashboard
